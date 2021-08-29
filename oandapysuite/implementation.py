@@ -7,6 +7,7 @@ import time
 
 from requests import get, put, post
 from datetime import datetime
+from copy import deepcopy
 from re import sub
 from string import printable
 from matplotlib import pyplot
@@ -25,7 +26,7 @@ OANDAAPIObject to retreive candledata. It can be iterated
 over like a list, and each individual candle is its own
 object. The CandlesObject class is essentially a list of
 individual candle objects."""
-class CandlesObject:
+class CandleCluster:
 
     class Candle:
         def __init__(self, candledata, ins, gran):
@@ -94,6 +95,20 @@ class CandlesObject:
     def __len__(self):
         return len(self.candles)
 
+    def __add__(self, b):
+        if not self.instrument == b.instrument:
+            raise ClusterConcatException(self.instrument, b.instrument)
+        if self[0].time > b[-1].time:
+            result = deepcopy(b)
+            for candle in self:
+                result.candles.append(candle)
+        elif b[0].time > self[-1].time:
+            result = deepcopy(self)
+            for candle in b:
+                result.candles.append(candle)
+        return
+
+
     def history(self, valuex=None, valuey=None):
         historic_data = {'x' : [],
                          'y' : []}
@@ -113,7 +128,7 @@ class OANDAAPIObject:
             'Authorization': f'Bearer {self.auth}'
         }
         response = get(get_candle(ins, gran, count=count, _from=_from, to=to), headers=headers)
-        return CandlesObject(response.text)
+        return CandleCluster(response.text)
 
     def get_child_candles(self, candle, gran):
         start = int(candle.time.timestamp()) - candlex[candle.gran]
@@ -127,6 +142,10 @@ class OANDAAPIObject:
     
     @staticmethod
     def plot(x=None, y=None, style='scatter'):
+        if style == 'vline':
+            pyplot.axvline(x=x, color='r')
+        if style == 'hline':
+            pyplot.axhline(y=y, color='r')
         x = array(x)
         y = array(y)
         getattr(pyplot, style)(x, y)
@@ -134,6 +153,7 @@ class OANDAAPIObject:
     @staticmethod
     def visualize():
         pyplot.show()
+
 
                 
         
