@@ -37,7 +37,6 @@ class API:
         # range is by time. Two unix times can be specified (a from value and a two value) and all candlesticks that fall
         # between the two times (Unix Epoch timestamp) will be retrieved.
         if count:
-            print(instrument.Instrument.get_candles('USD_CAD', 'M1'))
             response = get(instrument.Instrument.get_candles(ins,gran, count=count),headers=self.auth_header)
         else:
             response = get(instrument.Instrument.get_candles(ins,gran, from_time=UnixTime(_from), to_time=UnixTime(to)), headers=self.auth_header)
@@ -67,7 +66,7 @@ class API:
 
                     )],
             layout={'yaxis': {'fixedrange': False},
-                    'title': {'text': f'{candle_data.instrument}'}
+                    'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
             }
         )
 
@@ -91,31 +90,6 @@ class API:
         self.auth_header = {
             'Authorization': f'Bearer {self.auth}'
         }
-    @staticmethod
-    def plot(x=None, y=None, style='scatter'):
-        """Uses matplotlib to plot and visualize data. In order to plot
-        data, x and y variables are required. To choose the format of
-        the data being graphed (eg, line graph vs scatter plot), pass in
-        the specified style of graphing to the keyworded argument, `style`.
-        Defaults to `scatter`. `plot` is another valid and supported style.
-        Horizontal and vertical lines can be graphed by passing in an x value
-        for vertical lines, and using `vline` for `style`, and a y value for
-        horizontal lines and using `hline` for `style`."""
-
-        if style == 'vline':
-            pyplot.axvline(x=x, color='r')
-        if style == 'hline':
-            pyplot.axhline(y=y, color='r')
-        x = array(x)
-        y = array(y)
-        getattr(pyplot, style)(x, y)
-
-    @staticmethod
-    def visualize():
-        """Visualizes plotted data."""
-        
-        pyplot.show()
-
 
                 
         

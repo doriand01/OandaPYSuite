@@ -5,6 +5,10 @@ from oandapysuite import stats
 from oandapysuite import endpoints
 from oandapysuite import objects
 
+SMA = objects.indicators.SimpleMovingAverage
+PopSTD = objects.indicators.PopulationStandardDeviation
+SSTD = objects.indicators.SampleStandardDeviation
+
 if not settings.AUTH_FILEPATH:
     print("""No file containing the API Authorization token has been specified. \n
             If you have your API key with you, place it in a .txt file and type paste \n

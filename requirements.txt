@@ -1,5 +1,5 @@
-matplotlib
 requests
 regex
 numpy
 plotly
+pandas

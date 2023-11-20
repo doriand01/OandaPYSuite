@@ -98,5 +98,37 @@ class PopulationStandardDeviation(BaseIndicator):
         )
 
 
+### My own
+
+class AverageDifference(BaseIndicator):
+
+    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
+        self.valid_options = ['on', 'period', 'color', 'name']
+        datapoints = []
+        if not all([key in self.valid_options for key in options.keys()]):
+            raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
+        for i in range(len(candle_cluster)):
+            if i < options['period']:
+                datapoints.append(None)
+                continue
+            this_cand = getattr(candle_cluster[i], options['on'])
+            differences = sum(this_cand - getattr(candle_cluster[j], options['on']) for j in range(i-options['period'], i))
+            avg_diff = differences/options['period']
+            normalized_diff = this_cand + (avg_diff/this_cand)
+            datapoints.append((normalized_diff))
+        return DataFrame(
+            data=
+            {
+                'x' : candle_cluster.history('time'),
+                'y' : datapoints
+            }
+        )
+
+
+
+
+
+
+
 
 
