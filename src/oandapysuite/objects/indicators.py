@@ -5,6 +5,8 @@ from oandapysuite.exceptions import IndicatorOptionsError
 import math
 import decimal
 
+D = decimal.Decimal
+
 decimal.getcontext().prec = 6
 
 class BaseIndicator:
@@ -25,7 +27,9 @@ class BaseIndicator:
     def __init__(self, candle_cluster, **options):
         for key, value in options.items():
             setattr(self, key, value)
+        self.is_subplot = False
         self.data = self.ind_algorithm(candle_cluster, options)
+
 
 
 class SimpleMovingAverage(BaseIndicator):
@@ -66,7 +70,7 @@ class SampleStandardDeviation(BaseIndicator):
             period_average = sum([getattr(candle_cluster[j], options['on'])  for j in range(i-options['period'],i)])/options['period']
             sum_of_diff_squares = sum([(getattr(candle_cluster[j], options['on']) - period_average) ** 2 for j in range(i-options['period'],i)])
             std = math.sqrt(sum_of_diff_squares/options['period'])
-            datapoint = decimal.Decimal(std*options['z']) + getattr(candle_cluster[i], options['on'])
+            datapoint = D(std*options['z']) + getattr(candle_cluster[i], options['on'])
             datapoints.append(datapoint)
         return DataFrame(
             data=
@@ -75,6 +79,46 @@ class SampleStandardDeviation(BaseIndicator):
                 'y' : datapoints
             }
         )
+
+class RelativeStrengthIndex(BaseIndicator):
+
+    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
+            """
+            Calculate Relative Strength Index (RSI) for a given period.
+
+            Parameters:
+            - period: int, Period of the RSI
+            - candle_data: DataFrame, OHLC and time data stored in a pandas DataFrame
+
+            Returns:
+            - rsi_values: Series, RSI values for each corresponding time period
+            """
+
+            # Calculate daily price changes
+            self.is_subplot = True
+            period = options['period']
+            delta = candle_cluster.to_dataframe()['close'].diff()
+
+            # Calculate gain (positive price changes) and loss (negative price changes)
+            gain = delta.where(delta > 0, 0)
+            loss = -delta.where(delta < 0, 0)
+
+            # Calculate average gain and average loss over the specified period
+            avg_gain = gain.rolling(window=period, min_periods=1).mean()
+            avg_loss = loss.rolling(window=period, min_periods=1).mean()
+
+            # Calculate relative strength (RS)
+            rs = avg_gain / avg_loss
+
+            # Calculate RSI
+            rsi = 100 - (100 / (1 + rs))
+            return DataFrame(
+                data=
+                {
+                    'x' : candle_cluster.history('time'),
+                    'y' : rsi
+                }
+            )
 
 class PopulationStandardDeviation(BaseIndicator):
 
@@ -87,7 +131,7 @@ class PopulationStandardDeviation(BaseIndicator):
         sum_of_diff_squares = sum((getattr(candle, options['on']) - population_average) ** 2 for candle in candle_cluster)
         std = math.sqrt(sum_of_diff_squares / len(candle_cluster))
         for candle in candle_cluster:
-            datapoint = decimal.Decimal(std*options['z']) + getattr(candle, options['on'])
+            datapoint = D(std*options['z']) + getattr(candle, options['on'])
             datapoints.append(datapoint)
         return DataFrame(
             data=
@@ -100,10 +144,11 @@ class PopulationStandardDeviation(BaseIndicator):
 
 ### My own
 
-class AverageDifference(BaseIndicator):
+class StandardAverageDifference(BaseIndicator):
 
     def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
         self.valid_options = ['on', 'period', 'color', 'name']
+        self.period = options['period']
         datapoints = []
         if not all([key in self.valid_options for key in options.keys()]):
             raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
@@ -116,6 +161,68 @@ class AverageDifference(BaseIndicator):
             avg_diff = differences/options['period']
             normalized_diff = this_cand + (avg_diff/this_cand)
             datapoints.append((normalized_diff))
+        return DataFrame(
+            data=
+            {
+                'x' : candle_cluster.history('time'),
+                'y' : datapoints
+            }
+        )
+
+class AltAverageDifference(BaseIndicator):
+
+    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
+        self.valid_options = ['on', 'period', 'color', 'name']
+        self.is_subplot = True
+        self.period = options['period']
+        datapoints = []
+        if not all([key in self.valid_options for key in options.keys()]):
+            raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
+        for i in range(len(candle_cluster)):
+            if i < options['period']:
+                datapoints.append(None)
+                continue
+            this_cand = getattr(candle_cluster[i], options['on'])
+            differences = sum(this_cand - getattr(candle_cluster[j], options['on']) for j in range(i-options['period'], i))
+            avg_diff = differences/options['period']
+            datapoints.append((avg_diff))
+        return DataFrame(
+            data=
+            {
+                'x' : candle_cluster.history('time'),
+                'y' : datapoints
+            }
+        )
+
+
+class AverageAverageDifference(BaseIndicator):
+
+    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
+        self.valid_options = ['on', 'period', 'color', 'name']
+        stavdf = []
+        datapoints = []
+        avd_datapoints = []
+        if not all([key in self.valid_options for key in options.keys()]):
+            raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
+        for i in range(len(candle_cluster)):
+            if i < options['period']:
+                avd_datapoints.append(None)
+                continue
+            this_cand = getattr(candle_cluster[i], options['on'])
+            differences = sum(this_cand - getattr(candle_cluster[j], options['on']) for j in range(i-options['period'], i))
+            avg_diff = differences/options['period']
+            avd_datapoints.append((avg_diff))
+            normalized_diff = this_cand + (avg_diff/this_cand)
+            stavdf.append((normalized_diff))
+
+        for i in range(len(avd_datapoints)):
+            if i < 2 * options['period'] -1:
+                datapoints.append(None)
+                continue
+            avg_diff_dp =                getattr(candle_cluster[i], options['on']) + (decimal.Decimal(
+                                sum([avd_datapoints[j+1] for j in range(i-options['period'], i)])) / decimal.Decimal(options['period']))
+            datapoints.append(avg_diff_dp)
+        pass
         return DataFrame(
             data=
             {

@@ -1,17 +1,26 @@
 from oandapysuite.settings import AUTH_FILEPATH
-from oandapysuite.endpoints import account
+from oandapysuite.endpoints import account as acc
 from oandapysuite.endpoints import instrument
 from oandapysuite.objects.instrument import CandleCluster
-from oandapysuite.objects.indicators import BaseIndicator
+from oandapysuite.objects.indicators import BaseIndicator, AltAverageDifference
 from oandapysuite.objects.datatypes import UnixTime
+from oandapysuite.objects import trade
+from oandapysuite import exceptions
+from oandapysuite.stats import candlex
 
-from requests import get
+from requests import get, post, put
+from time import sleep
+from copy import deepcopy
+
+import json
+import logging
 
 import plotly.graph_objects as plot
+from plotly.subplots import make_subplots as subplot
 
 from pandas import DataFrame
 
-
+logging.basicConfig(filename='sigs.log', encoding='utf-8', level=logging.WARN)
 
 
 
@@ -20,6 +29,12 @@ class API:
     initialize this class, the constructor must be passed a file URI containing the
     user's API auth token. For example, if you have it located in your documents folder,
     it would be `x = APIObject('~/Documents/auth.txt')`"""
+
+    @staticmethod
+    def __calculate_view_height(num_subplots):
+        if num_subplots == 0:
+            return [1]
+        return   [0.8] + [(1-0.8)/num_subplots] * num_subplots
 
     def get_candles(self, ins, gran, count=None, _from=None, to=None):
         """Returns a CandleCluster object containing candles with historical data. `ins` should be
@@ -39,10 +54,62 @@ class API:
         if count:
             response = get(instrument.Instrument.get_candles(ins,gran, count=count),headers=self.auth_header)
         else:
-            response = get(instrument.Instrument.get_candles(ins,gran, from_time=UnixTime(_from), to_time=UnixTime(to)), headers=self.auth_header)
+            response = get(instrument.Instrument.get_candles(ins,gran, from_time=_from, to_time=to), headers=self.auth_header)
         return CandleCluster(response.text)
+
+    def load_accounts(self):
+        accounts = json.loads(get(acc.Account.get_accounts_for_token, headers=self.auth_header).text)['accounts']
+        for account in accounts:
+            account_obj = trade.Account(account)
+            self.available_accounts.append((account_obj))
+
+    def select_account(self, index=0):
+        if not self.available_accounts:
+            raise exceptions.AccountsNotLoadedError
+        else:
+            self.selected_account = self.available_accounts[index]
+
+    def open_trade(self, instrument, units):
+
+        if not self.selected_account:
+            raise exceptions.NoAccountSelectedError()
+        else:
+            req_url, order_body = acc.Account.create_order(instrument, units, self.selected_account.id)
+            response = post(req_url, headers=self.auth_header,json=order_body)
+            self.open_trades.append(json.loads(response.text)['lastTransactionID'])
+
+    def close_trade(self, trans_id, units="ALL"):
+        if not self.selected_account:
+            raise exceptions.NoAccountSelectedError()
+        else:
+            req_url, order_body = acc.Account.close_trade(self.selected_account.id, trans_id, units)
+            response = put(req_url, headers=self.auth_header)
+            self.open_trades.remove(trans_id)
+
+    def trade_signal(self, instrument,  signal, cur_price):
+        logging.warn(f'INSTANT SIGNAL: {signal.data.iloc[-1]["y"]}, INSTRUMENT {instrument}')
+        if signal.data.iloc[-1]['y'] == 1 and not self.open_trades :
+            print(f'Signal 1 detected, entering trade long @ {cur_price} on {instrument}')
+            self.open_trade(instrument, 50000)
+        if signal.data.iloc[-1]['y'] == 2 and not self.open_trades:
+            print(f'Signal 2 detected, entering trade short @ {cur_price} on {instrument}')
+            self.open_trade(instrument, -50000)
+        if signal.data.iloc[-1]['y'] == 3 and len(self.open_trades) > 0:
+            print(f'Signal 3 detected, exiting long @ {cur_price} on {instrument}')
+            self.close_trade(self.open_trades[0])
+        if signal.data.iloc[-1]['y'] == 4 and len(self.open_trades) > 0:
+            print(f'Signal 4 detected, exiting short @ {cur_price} on {instrument}')
+            self.close_trade(self.open_trades[0])
+
+
+
+
+    def get_order_book(self, instrument):
+        response = get(instrument.Instrument.get_order_book(instrument))
+
+
         
-    def get_child_candles(self, candle, gran):
+    def get_child_candles(self, candle: CandleCluster.Candle, gran: str) -> CandleCluster:
         """Returns the children candles (in the form of a CandleCluster object) of a specified 
         candle at the specified granuarlity. For example, passing in an H1 candle from 00:00-01:00 
         on 1 January, using 'M1' as the desired child granularity, will yield a CandleCluster object 
@@ -50,12 +117,29 @@ class API:
 
         start = int(candle.time.timestamp()) - candlex[candle.gran]
         end = int(candle.time.timestamp())
-        return self.get_instrument_candles(candle.instrument, gran, _from=start, to=end)
+        return self.get_candles(candle.instrument, gran, _from=UnixTime(start), to=UnixTime(end))
 
-    def initialize_chart(self, candle_data: CandleCluster):
+    def initialize_chart(self, candle_data: CandleCluster, live=False):
         cluster_df = candle_data.to_dataframe()
-        self.fig =  plot.Figure(
-            data=[
+        if not live:
+            self.fig =  plot.Figure(
+                data=[
+                        plot.Candlestick(
+                            x=cluster_df['time'],
+                            open=cluster_df['open'],
+                            high=cluster_df['high'],
+                            low=cluster_df['low'],
+                            close=cluster_df['close'],
+
+
+                        )],
+                layout={'yaxis': {'fixedrange': False},
+                        'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
+                }
+            )
+        if live:
+            self.fig = plot.FigureWidget(
+                plot.Figure(data=[
                     plot.Candlestick(
                         x=cluster_df['time'],
                         open=cluster_df['open'],
@@ -63,24 +147,52 @@ class API:
                         low=cluster_df['low'],
                         close=cluster_df['close'],
 
-
-                    )],
-            layout={'yaxis': {'fixedrange': False},
-                    'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
-            }
-        )
+                    )]),
+                layout={'yaxis': {'fixedrange': False},
+                        'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
+                        }
+            )
 
     def add_indicator(self, indicator: BaseIndicator):
-        self.fig.add_trace(
-            plot.Scatter(
+        if indicator.is_subplot:
+            old_fig = deepcopy(self.fig)
+            self.fig = subplot(rows=len(old_fig.data)+1, cols=1, row_heights=API.__calculate_view_height(len(old_fig.data)), shared_xaxes=True)
+            for i in range(len(old_fig.data)):
+                self.fig.add_trace(old_fig.data[i], row=i+1, col=1)
+            self.fig.add_trace(plot.Scatter(
                 name=indicator.name,
-                x = indicator.data['x'],
-                y = indicator.data['y'],
-            mode='lines',
-            line=plot.scatter.Line(color=indicator.color)),
-        )
+                x=indicator.data['x'],
+                y=indicator.data['y'],
+                mode='lines',
+                line=plot.scatter.Line(color=indicator.color)),
+                row=len(old_fig.data)+1,
+                col=1)
+        else:
+            self.fig.add_trace(
+                plot.Scatter(
+                    name=indicator.name,
+                    x = indicator.data['x'],
+                    y = indicator.data['y'],
+                mode='lines',
+                line=plot.scatter.Line(color=indicator.color)),
+            )
     def render_chart(self):
+        self.fig.update_layout(xaxis_rangeslider_visible=False)
         self.fig.show()
+
+    def render_live_chart(self, interval, instrument, granularity, count):
+        self.fig.show()
+        while True:
+            cluster_df= self.get_candles(instrument, granularity,count=count).to_dataframe()
+            print(cluster_df['close'].iloc[-1])
+            self.fig.data[0].x  = cluster_df['time']
+            self.fig.data[0].open = cluster_df['open']
+            self.fig.data[0].high = cluster_df['high']
+            self.fig.data[0].low = cluster_df['low']
+            self.fig.data[0].close = cluster_df['close']
+            sleep(interval)
+
+
 
 
             
@@ -90,6 +202,9 @@ class API:
         self.auth_header = {
             'Authorization': f'Bearer {self.auth}'
         }
+        self.available_accounts = []
+        self.selected_account = None
+        self.open_trades = []
 
                 
         

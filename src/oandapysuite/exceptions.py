@@ -1,5 +1,13 @@
 
+class AccountsNotLoadedError(Exception):
 
+    def __init__(self, msg):
+        super(AccountsNotLoadedError, self).__init__("No accounts have been loaded in the API object. Load first them with load_accounts()")
+
+class NoAccountSelectedError(Exception):
+
+    def __init__(self, msg):
+        super(NoAccountSelectedError, self).__init__("No accounts have been selected for use. Select an account from your available accounts to make a transaction.")
 class ArgumentError(Exception):
 
     def __init__(self, msg):

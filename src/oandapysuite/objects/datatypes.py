@@ -1,5 +1,6 @@
 import datetime
 from regex import finditer
+from random import randint
 
 from oandapysuite import settings
 
@@ -18,12 +19,21 @@ class UnixTime:
     # certain UNIX times without having to manually calculate the UNIX epoch for the given datetime that you want to
     # retrieve data.
     def __init__(self, time_string: str):
+        if  type(time_string) == int or time_string.isdigit():
+            self.string_repr = str(time_string)
+            self.datetime_repr = datetime.datetime.fromtimestamp(int(time_string))
+            self.timestamp = self.datetime_repr.timestamp()
+            self.today = datetime.date.today()
+            return
         self.string_repr = time_string
         self.today = datetime.date.today()
         time_string_unix_regex_iterator = finditer(settings.DATETIME_REGEX, time_string)
         time_string_parsed_groups = [match.group() for match in time_string_unix_regex_iterator]
         # If the length of the above generated list parsed groups from the regex is 1, then it is either
         # A specific date or a specific time.
+        if time_string.lower() == 'now':
+            self.datetime_repr = datetime.datetime.now()
+            self.timestamp = int(self.datetime_repr.timestamp())
         if len(time_string_parsed_groups) == 1:
 
             time_string = time_string_parsed_groups[0]
@@ -47,6 +57,19 @@ class UnixTime:
 
     def __repr__(self):
         return f"UnixTime Object: {self.datetime_repr.strftime('%Y-%m-%d %H:%M')}"
+
+    @staticmethod
+    def randomtime(start: str, end: str):
+        rangestart = UnixTime(start).timestamp
+        rangeend = UnixTime(end).timestamp
+        randomtime = UnixTime(
+            datetime.datetime.fromtimestamp(
+                randint(rangestart, rangeend)
+            ).strftime('%Y-%m-%d %H:%M')
+        )
+        return randomtime
+
+
 
 # Granularity class provides string constants for all granularities available on the market, ranging from M1 to M.
 class Granularity:

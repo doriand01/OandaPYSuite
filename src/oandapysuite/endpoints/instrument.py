@@ -2,6 +2,9 @@ from oandapysuite.objects.datatypes import UnixTime
 from oandapysuite.settings import REQUEST_PREFIX
 from oandapysuite import exceptions
 class Instrument:
+
+    get_order_book = lambda instrument: f'{REQUEST_PREFIX}/instruments/{instrument}/orderBook'
+    get_position_book = lambda instrument: f'{REQUEST_PREFIX}/instruments/{instrument}/positionBook'
     @staticmethod
     def get_candles(
                     ins: str,
