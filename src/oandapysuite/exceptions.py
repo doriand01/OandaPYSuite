@@ -47,3 +47,8 @@ class IndicatorOptionsError(Exception):
 
     def __init__(self, indicator, msg):
         super(IndicatorOptionsError, self).__init__(f'Invalid options for indicator {indicator}: \n {msg}')
+
+class APIError(Exception):
+
+    def __init__(self, code, msg):
+        super(APIError, self).__init__(f'Request to API failed with code {code}:\n{msg}')

@@ -23,7 +23,6 @@ from pandas import DataFrame
 logging.basicConfig(filename='sigs.log', encoding='utf-8', level=logging.WARN)
 
 
-
 class API:
     """Object that allows the user to access OANDA's REST API endpoints. In order to
     initialize this class, the constructor must be passed a file URI containing the
@@ -38,11 +37,11 @@ class API:
 
     def get_candles(self, ins, gran, count=None, _from=None, to=None):
         """Returns a CandleCluster object containing candles with historical data. `ins` should be
-        a string containing the currency pair you would like to retreive, in the form of BASE_QUOTE.
+        a string containing the currency pair you would like to retrieve, in the form of BASE_QUOTE.
         (eg. USD_CAD). `gran` is the granularity of the candles, and should be a string specifying
         any granularity that you would find in a typical market chart (eg. 'M1', 'M5', 'H1') etc...
         `count` is an optional variable that returns the specified number of candles. Should be an int.
-        `_from` and `to` are for if you would prefer to retreive candles from a certain time range.
+        `_from` and `to` are for if you would prefer to retrieve candles from a certain time range.
         These values should be an integer in the format of the UNIX epoch (seconds elapsed since 
         1 January 1970.)"""
 
@@ -55,6 +54,9 @@ class API:
             response = get(instrument.Instrument.get_candles(ins,gran, count=count),headers=self.auth_header)
         else:
             response = get(instrument.Instrument.get_candles(ins,gran, from_time=_from, to_time=to), headers=self.auth_header)
+
+        if response.status_code != 200:
+            raise exceptions.APIError(response.status_code,response.text)
         return CandleCluster(response.text)
 
     def load_accounts(self):
@@ -80,7 +82,7 @@ class API:
 
     def close_trade(self, trans_id, units="ALL"):
         if not self.selected_account:
-            raise exceptions.NoAccountSelectedError()
+            raise exceptions.NoAccountSelectedError("No account selected. Select an account with `select_account()`")
         else:
             req_url, order_body = acc.Account.close_trade(self.selected_account.id, trans_id, units)
             response = put(req_url, headers=self.auth_header)
@@ -100,29 +102,23 @@ class API:
         if signal.data.iloc[-1]['y'] == 4 and len(self.open_trades) > 0:
             print(f'Signal 4 detected, exiting short @ {cur_price} on {instrument}')
             self.close_trade(self.open_trades[0])
-
-
-
-
     def get_order_book(self, instrument):
         response = get(instrument.Instrument.get_order_book(instrument))
 
-
-        
     def get_child_candles(self, candle: CandleCluster.Candle, gran: str) -> CandleCluster:
         """Returns the children candles (in the form of a CandleCluster object) of a specified 
-        candle at the specified granuarlity. For example, passing in an H1 candle from 00:00-01:00 
+        candle at the specified granularity. For example, passing in an H1 candle from 00:00-01:00
         on 1 January, using 'M1' as the desired child granularity, will yield a CandleCluster object 
         containing 60 M1 candles, ranging from the start of the parent candle to the end of the parent candle."""
 
-        start = int(candle.time.timestamp()) - candlex[candle.gran]
-        end = int(candle.time.timestamp())
+        start = int(candle.time.timestamp())
+        end = int(candle.time.timestamp()) + candlex[candle.gran]
         return self.get_candles(candle.instrument, gran, _from=UnixTime(start), to=UnixTime(end))
 
     def initialize_chart(self, candle_data: CandleCluster, live=False):
         cluster_df = candle_data.to_dataframe()
         if not live:
-            self.fig =  plot.Figure(
+            self.fig = plot.Figure(
                 data=[
                         plot.Candlestick(
                             x=cluster_df['time'],
@@ -138,16 +134,15 @@ class API:
                 }
             )
         if live:
-            self.fig = plot.FigureWidget(
-                plot.Figure(data=[
+            self.fig = plot.FigureWidget(data=[
                     plot.Candlestick(
                         x=cluster_df['time'],
-                        open=cluster_df['open'],
-                        high=cluster_df['high'],
-                        low=cluster_df['low'],
-                        close=cluster_df['close'],
+                        open=cluster_df['open'].astype(float),
+                        high=cluster_df['high'].astype(float),
+                        low=cluster_df['low'].astype(float),
+                        close=cluster_df['close'].astype(float),
 
-                    )]),
+                    )],
                 layout={'yaxis': {'fixedrange': False},
                         'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
                         }
@@ -173,12 +168,25 @@ class API:
                     name=indicator.name,
                     x = indicator.data['x'],
                     y = indicator.data['y'],
-                mode='lines',
-                line=plot.scatter.Line(color=indicator.color)),
+                    mode='lines',
+                    line=plot.scatter.Line(color=indicator.color)),
             )
-    def render_chart(self):
-        self.fig.update_layout(xaxis_rangeslider_visible=False)
-        self.fig.show()
+
+    def render_chart(self, live=False, data_df=None):
+        if not live:
+            self.fig.update_layout(xaxis_rangeslider_visible=False)
+            self.fig.show()
+        else:
+            self.fig.for_each_trace(lambda trace: trace.update(visible=False))
+            self.fig.add_trace(
+                    plot.Candlestick(
+                        x=data_df['time'],
+                        open=data_df['open'].astype(float),
+                        high=data_df['high'].astype(float),
+                        low=data_df['low'].astype(float),
+                        close=data_df['close'].astype(float),
+
+                    ))
 
     def render_live_chart(self, interval, instrument, granularity, count):
         self.fig.show()
@@ -192,11 +200,6 @@ class API:
             self.fig.data[0].close = cluster_df['close']
             sleep(interval)
 
-
-
-
-            
-
     def __init__(self):
         self.auth = str(open(AUTH_FILEPATH, 'r').read())
         self.auth_header = {
@@ -205,9 +208,3 @@ class API:
         self.available_accounts = []
         self.selected_account = None
         self.open_trades = []
-
-                
-        
-        
-        
-

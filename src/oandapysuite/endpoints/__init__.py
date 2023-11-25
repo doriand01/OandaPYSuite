@@ -8,6 +8,7 @@ prefix = 'https://api-fxpractice.oanda.com'
 accounts_for_token = f'{prefix}/v3/accounts'
 account_details = lambda accid: f'{accounts_for_token}/{accid}'
 
+
 def get_candle(ins, gran, count=500, _from=None, to=None):
     if not _from or not to: 
         return f'{prefix}/v3/instruments/{ins}/candles?granularity={gran}&count={count}'
