@@ -38,18 +38,18 @@ class AvDiffSignal(BaseSignal):
             period_max = max([val for val in params[0].data['y'].tolist() if val is not None][i-period:i])
             this_cand = candle_cluster[i].close
             if self.in_position == False:
-                if ( avdiff <= period_min and this_cand < sma - Decimal(0.0011)):
+                if ( avdiff <= period_min and this_cand < sma - Decimal(0.0015)):
                     datapoints.append(1)
                     self.in_position = 1
                     self.entry_price = candle_cluster[i].close
-                    self.stop_loss = this_cand + avdiff * Decimal(1.2)
-                    self.take_profit = this_cand - (avdiff)
-                elif ( avdiff >= period_max and this_cand > sma + Decimal(0.0011)):
+                    self.stop_loss = this_cand + avdiff * Decimal(1.5)
+                    self.take_profit = this_cand - (avdiff) * Decimal(1)
+                elif ( avdiff >= period_max and this_cand > sma + Decimal(0.0015)):
                     datapoints.append(3)
                     self.in_position = 3
                     self.entry_price = candle_cluster[i].close
-                    self.stop_loss = this_cand + avdiff * Decimal(2)
-                    self.take_profit = this_cand - (avdiff)
+                    self.stop_loss = this_cand + avdiff * Decimal(1.5)
+                    self.take_profit = this_cand - (avdiff) * Decimal(1)
                 else:
                     datapoints.append(0)
             elif self.in_position != False:

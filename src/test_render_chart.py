@@ -7,17 +7,17 @@ UT = opy.objects.datatypes.UnixTime
 
 api = opy.api.API()
 
-candles = api.get_candles('USD_CAD', 'M1', count=1440)
+candles = api.get_candles('EUR_USD', 'M1', count=5000)
 avg_200day = opy.SMA(candles, on='close', period=200, color='purple', name='sma 200')
-avg_9day = opy.SMA(candles, on='close', period=9,color='green', name='sma 9')
-AVG_11DAY = opy.SMA(candles, on='close', period=11, color='red', name='sma 11')
-ad50 = opy.objects.indicators.StandardAverageDifference(candles, on='close', period=50, color='gray', name='sadiff')
+avg_9day = opy.SMA(candles, on='close', period=100,color='green', name='sma 9')
 altavg = opy.objects.indicators.AltAverageDifference(candles, period=100, on='open', name='altav', color='black')
+rsi = opy.objects.indicators.RelativeStrengthIndex(candles, on='close', period=100, name='rsi', color='black')
 
 
 AVDIFF = opy.objects.signals.AvDiffSignal(candles, [altavg,avg_200day])
 api.initialize_chart(candles)
 api.add_indicator(altavg)
+api.add_indicator(rsi)
 api.add_indicator(avg_200day)
 api.add_indicator(avg_9day)
 
