@@ -1,23 +1,22 @@
+from oandapysuite import exceptions
+from oandapysuite.stats import candlex
 from oandapysuite.settings import AUTH_FILEPATH
 from oandapysuite.endpoints import account as acc
 from oandapysuite.endpoints import instrument
+from oandapysuite.objects import trade
 from oandapysuite.objects.instrument import CandleCluster
 from oandapysuite.objects.indicators import BaseIndicator, AltAverageDifference
 from oandapysuite.objects.datatypes import UnixTime
-from oandapysuite.objects import trade
-from oandapysuite import exceptions
-from oandapysuite.stats import candlex
-
-from requests import get, post, put
-from time import sleep
-from copy import deepcopy
 
 import json
 import logging
+from time import sleep
+from copy import deepcopy
+from requests import get, post, put
+
 
 import plotly.graph_objects as plot
 from plotly.subplots import make_subplots as subplot
-
 from pandas import DataFrame
 
 logging.basicConfig(filename='sigs.log', encoding='utf-8', level=logging.WARN)
@@ -25,31 +24,33 @@ logging.basicConfig(filename='sigs.log', encoding='utf-8', level=logging.WARN)
 
 class API:
     """Object that allows the user to access OANDA's REST API endpoints. In order to
-    initialize this class, the constructor must be passed a file URI containing the
-    user's API auth token. For example, if you have it located in your documents folder,
-    it would be `x = APIObject('~/Documents/auth.txt')`"""
+    initialize this class, the auth token filepath URI must first be configured in the settings."""
 
     @staticmethod
     def __calculate_view_height(num_subplots):
         if num_subplots == 0:
             return [1]
-        return   [0.8] + [(1-0.8)/num_subplots] * num_subplots
+        return [0.8] + [(1-0.8)/num_subplots] * num_subplots
 
     def get_candles(self, ins, gran, count=None, _from=None, to=None):
-        """Returns a CandleCluster object containing candles with historical data. `ins` should be
-        a string containing the currency pair you would like to retrieve, in the form of BASE_QUOTE.
-        (eg. USD_CAD). `gran` is the granularity of the candles, and should be a string specifying
-        any granularity that you would find in a typical market chart (eg. 'M1', 'M5', 'H1') etc...
-        `count` is an optional variable that returns the specified number of candles. Should be an int.
-        `_from` and `to` are for if you would prefer to retrieve candles from a certain time range.
-        These values should be an integer in the format of the UNIX epoch (seconds elapsed since 
-        1 January 1970.)"""
+        """
+        Returns candle clusters from a specified period.
+
+        get_candles(
+            self,
+            ins: str <-- Must be a valid forex instrument (currency pair.)
+            gran: str <-- Candlestick granularity. Ranges from H1 to S5
+            count=None Must be specified of _from and to are not set.
+            _from: UnixTime <-- Time in form of a UnixTime object
+            to: UnixTime <-- Time in form of a UnixTime object
+        )
+        """
 
         # There are two ways to determine the desired range for the retrieval of candle data. The first is by
         # count. Count will retrieve x number of candles from the past preceding the latest available candle from
         # the market. The default for the API.get_candles() function is 500. The second way to determine candlestick
-        # range is by time. Two unix times can be specified (a from value and a two value) and all candlesticks that fall
-        # between the two times (Unix Epoch timestamp) will be retrieved.
+        # range is by time. Two unix times can be specified (a from value and a two value) and all candlesticks that
+        # fall between the two times (Unix Epoch timestamp) will be retrieved.
         if count:
             response = get(instrument.Instrument.get_candles(ins,gran, count=count),headers=self.auth_header)
         else:
@@ -60,27 +61,74 @@ class API:
         return CandleCluster(response.text)
 
     def load_accounts(self):
+        """
+        Loads tradeable accounts available for the authorized token. `load_account()` must be called before calling any
+         methods that involve accesing trading endpoints, like `open_trade()` or `close_trade()`. After loading your
+         accounts, call `select_account()` to choose an account to trade with.
+
+        load_accounts(self)
+        """
         accounts = json.loads(get(acc.Account.get_accounts_for_token, headers=self.auth_header).text)['accounts']
         for account in accounts:
             account_obj = trade.Account(account)
-            self.available_accounts.append((account_obj))
+            self.available_accounts.append(account_obj)
 
     def select_account(self, index=0):
+        """
+        Selects loaded tradeable account. Must be called after `load_account()` and before calling any methods that
+        access trading endpoints like `open_trade()` or `close_trade()`.
+
+        select_account(
+            self,
+            index: int = 0
+        )
+
+        * The stored and previously loaded accounts are stored as an object attribute `self.loaded_accounts`
+        * If you want to select the loaded account at index 0 in this list, call `select_account(0)`.
+        * index is 0 by default.
+        """
+
         if not self.available_accounts:
             raise exceptions.AccountsNotLoadedError
         else:
             self.selected_account = self.available_accounts[index]
 
     def open_trade(self, instrument, units):
+        """
+        Opens a trade on the market.
 
+        open_trade(
+            self,
+            instrument: str
+            units: int
+        )
+        * Units should be an integer.
+        * To enter a long, units should be positive. To enter a short, they should be negative.
+        """
+
+        # Raises a NoAccountSelectedError if select_account() hasn't been called before opening a trade.
         if not self.selected_account:
             raise exceptions.NoAccountSelectedError()
         else:
+            # The API object has a list of currently open trades stored as a list of strings containing the trade's
+            # Transaction ID.
             req_url, order_body = acc.Account.create_order(instrument, units, self.selected_account.id)
             response = post(req_url, headers=self.auth_header,json=order_body)
             self.open_trades.append(json.loads(response.text)['lastTransactionID'])
 
     def close_trade(self, trans_id, units="ALL"):
+        """
+        Closes a trade on the market. The transaction id of the trade must be provided.
+
+        close_trade(
+            self,
+            trans_id: str
+            units: str or int
+        )
+
+        * If units is are specified, a partial close will be executed.
+        * If no units are specified, the whole position will be closed.
+        """
         if not self.selected_account:
             raise exceptions.NoAccountSelectedError("No account selected. Select an account with `select_account()`")
         else:
@@ -191,9 +239,9 @@ class API:
     def render_live_chart(self, interval, instrument, granularity, count):
         self.fig.show()
         while True:
-            cluster_df= self.get_candles(instrument, granularity,count=count).to_dataframe()
+            cluster_df = self.get_candles(instrument, granularity,count=count).to_dataframe()
             print(cluster_df['close'].iloc[-1])
-            self.fig.data[0].x  = cluster_df['time']
+            self.fig.data[0].x = cluster_df['time']
             self.fig.data[0].open = cluster_df['open']
             self.fig.data[0].high = cluster_df['high']
             self.fig.data[0].low = cluster_df['low']

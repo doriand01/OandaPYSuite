@@ -17,14 +17,21 @@ class BaseIndicator:
     To create a custom indicator, your indicator class must inherit from the BaseIndicator class, and it must
     override the `BaseIndicator.ind_algorithm() function. This function takes one parameter (besides self) as
     an argument, which is the CandleCluster object. Here in this function, you can run your statistics over
-    the data to calculate your indicators, however, the ind_algorithm function must return a pandas dataframe with
-    at least two columns, one for the x axis (time) for each data point, and the others with your data.
+    the data to calculate the values for your indicators, however, the ind_algorithm function must return a pandas
+    dataframe with at least two columns, one for the x-axis (time) for each data point, and the others with your data.
     """
 
     def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
         return None
 
     def __init__(self, candle_cluster, **options):
+        """
+        __init__(
+            self,
+            candle_cluster: oandapysuite.objects.instrument.CandleCluster,
+            options: dict(), <--- Parameters for your indicator. eg. period, etc...
+            )
+        """
         for key, value in options.items():
             setattr(self, key, value)
         self.is_subplot = False

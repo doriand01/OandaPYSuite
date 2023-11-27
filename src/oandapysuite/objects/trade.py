@@ -34,6 +34,9 @@ class Trade:
 
 
 class MarketSimulator:
+    """
+    This object provides a live market simulation of historic market data.
+    """
 
     def __update_price(self, candle, is_close=False, is_open=False):
         if is_close: self.current_price = candle.close
@@ -47,30 +50,63 @@ class MarketSimulator:
             if self.current_price > candle.high: self.current_price = candle.high
             elif self.current_price < candle.low: self.current_price = candle.low
 
+    # Uses recursive logic to get the relevant candle for a specified target time. The candle to be returned depends on
+    # What the target time is, as well as the speed of the simulation. In order for the simulation to run properly,
+    # There needs to be enough tick updates within a specified timeframe for the market to correctly simulate the historic
+    # Each tick update will update the current price of the instrument on the market, and there needs to be at the very
+    # minimum, 4 updates for the price to reflect each price component: open, high, low and close. If the time delta for
+    # each tick update is greater than 1/4 the length of the timeframe, then that timeframe is too low to be simulated,
+    # and the candles from the higher timeframe will be returned instead. Otherwise, the candles from the lowest possible
+    # timeframe that can be simulated under the simulation conditions will be returned.
     def __get_candle_at_time(self, candle, target_time):
+
+        # If the granularity of the current candle is equal to the timeframe we want to generate a candle chart for,
+        # (as specified in the `self.generate_for` attribute) then the current candle will be added to a dictionary which
+        # represents the current state of the market.
         if candle.gran == self.generate_for:
             adjusted_candle = deepcopy(candle)
             adjusted_candle.close = self.current_price
             self.candles_dict[candle.time] = adjusted_candle
+
+        # Sees if the candle has a lower timeframe.
         if candle.has_lower_timeframe():
             lower_timeframe = candle.get_lower_timeframe()
             cache_key = (candle.gran, candle.time)
+
+            # If the change in time for each tick is greater than the lower timeframe divided by 4,
+            # the current candle is returned. The returned candle's timeframe is the lowest that can be
+            # accurately rendered by the simulations given the settings they were run with.
             if self.speed_factor/self.tps > candlex[lower_timeframe]/4:
                 return candle
+
+            # If the candle's child candles have been saved in cache already, they are retrieved from cache
+            # in order to reduce the load on OANDA's API.
             if cache_key in self.candle_cache:
                 children = self.candle_cache[cache_key]
+
+            # If the child candles are not in the cache, they are retrieved using the `get_child_candles()`
+            # method from the API. They are then stored in cache for future use.
             else:
                 children = self.api.get_child_candles(candle, lower_timeframe)
                 self.candle_cache[cache_key] = children
+
+            # Iterates backwards over the child candles.
             for cand in reversed(children.candles):
+                # If the open time of the candle is less than the target time, the child candle is too far
+                # in the future and is not the current candle. The loop continues to the next one.
                 if target_time < cand.time:
                     continue
 
-                # Cache the result
+                # If the child candle has a lower timeframe, this entire function is called again recursively,
+                # except with the child candle.
                 if cand.has_lower_timeframe():
                     return self.__get_candle_at_time(cand, target_time)
+
+                # If the child has no lower timeframe it is returned.
                 return cand
 
+        # If a candle has not been returned yet, and the candle is of the lowest possible timeframe,
+        # (typically the S5 timeframe) then the candle is returned, representing the end of the recursion.
         if not candle.has_lower_timeframe():
             return candle
 
@@ -82,6 +118,19 @@ class MarketSimulator:
         self.paused = False
 
     def __init__(self, window, api_object, speed_factor=1.0, ticks_per_second=20, generate_for='S5'):
+        """
+        Creates the MarketSimulator.
+
+        __init__(
+            self,
+            window: CandleCluster() <-- window is the range of historic data you want to simulate market data for.
+            api_object: API() <-- An instantiated API object.
+            speed_factor: float <-- How fast the simulation runs. A speed factor of 2 will run 2x faster than real time.
+            ticks_per_second: int <-- How often the simulation updates.
+            generate_for: str <-- The timeframe that the simulation is running on. 'M1' will generate an M1 candlestick chart.
+        )
+
+        """
         self.window = window
         self.candles_dict = {}
         self.start_time = self.window[0].time
@@ -97,14 +146,28 @@ class MarketSimulator:
         self.paused = False
 
     def get_candle_cluster(self):
+        """
+        Returns the CandleCluster object for the simulated market. Takes no arguments.
+        """
         return CandleCluster(cand_list=list(self.candles_dict.values()))
 
-
     def run(self):
+        """
+        Begins the simulation. Takes no arguments.
+        """
+
+        # This loop iterates over every candle in the provided historic data. The topmost level candle is called the
+        # `macro candle`.
         for i in range(len(self.window)):
             current_macro_candle = self.window[i]
+
+            # While the current time of the simulation is less than that of the macro candle's close, the simulation will loop
+            # and update the market price according to the historic data.
             while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
-                if self.current_candle and self.current_time > self.current_candle.time + timedelta(
+
+                # If the current time is greater than the current candle's closing (meaning that the current candle has closed)
+                # the next candle is fetched using the __get_candle_at_time() method.
+                if self.current_time > self.current_candle.time + timedelta(
                         seconds=candlex[self.current_candle.gran]):
                     self.__update_price(self.current_candle, is_close=True)
                     self.current_candle = self.__get_candle_at_time(current_macro_candle, self.current_time)
@@ -115,6 +178,7 @@ class MarketSimulator:
                 sleep_interval = 1 / self.tps
                 sleep(sleep_interval)
                 self.current_tick += 1
+
 
 class Backtester(MarketSimulator):
 
@@ -215,8 +279,7 @@ class Backtester(MarketSimulator):
                 self.current_tick += 1
                 self.periods = len(list(self.candles_dict.values()))
 
-
-# Assuming candlex is defined somewhere in your code
+*
 
 
 

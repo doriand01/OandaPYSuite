@@ -19,6 +19,22 @@ class UnixTime:
     # certain UNIX times without having to manually calculate the UNIX epoch for the given datetime that you want to
     # retrieve data.
     def __init__(self, time_string: str):
+        """
+        __init__(
+            time_string: str
+        )
+
+        * `time_string` Must be in one of the following valid date formats:
+            hh:mm
+            hh:mm:ss
+            yyyy-mm-dd
+            yyyy-mm-dd hh:mm
+            yyyy-mm-dd hh:mm:ss
+        * Provding hour and minutes (and seconds) without a date will assume the current date,
+        and provide the candle at hh:mm:(ss) for today.
+        * Provding yyyy-mm-dd without hours and minutes will assume 00:00 on that date, and will
+        get the candle for midnight.
+        """
         if  type(time_string) == int or time_string.isdigit():
             self.string_repr = str(time_string)
             self.datetime_repr = datetime.datetime.fromtimestamp(int(time_string))
@@ -59,7 +75,19 @@ class UnixTime:
         return f"UnixTime Object: {self.datetime_repr.strftime('%Y-%m-%d %H:%M')}"
 
     @staticmethod
-    def randomtime(start: str, end: str):
+    def randomtime(start: str, end: str) -> UnixTime:
+        """
+        Provides a returns a random time between `start` and `end` as a
+        UnixTime object.
+        @staticmethod
+        Unix.randomtime(
+            start: str
+            end: str
+            )
+
+        * `start` and `end` must be in a valid date time format as specified
+        in __init__.
+        """
         rangestart = UnixTime(start).timestamp
         rangeend = UnixTime(end).timestamp
         randomtime = UnixTime(

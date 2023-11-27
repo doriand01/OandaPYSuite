@@ -1,10 +1,14 @@
 from oandapysuite.objects.datatypes import UnixTime
 from oandapysuite.settings import REQUEST_PREFIX
 from oandapysuite import exceptions
+
+
 class Instrument:
+    """Instrument class. This class contains functions that render URL endpoints to make requests to the REST API."""
 
     get_order_book = lambda instrument: f'{REQUEST_PREFIX}/instruments/{instrument}/orderBook'
     get_position_book = lambda instrument: f'{REQUEST_PREFIX}/instruments/{instrument}/positionBook'
+
     @staticmethod
     def get_candles(
                     ins: str,

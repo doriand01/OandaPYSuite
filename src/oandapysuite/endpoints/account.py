@@ -2,8 +2,7 @@ from oandapysuite.settings import *
 
 
 class Account:
-    """Account class. This class contains lambda functions that render
-    URL endpoints to make requests to the REST API."""
+    """Account class. This class contains functions that render URL endpoints to make requests to the REST API."""
 
     get_accounts_for_token = f'{REQUEST_PREFIX}/accounts'
     get_account_details = lambda accid: f'{REQUEST_PREFIX}/accounts/{accid}'

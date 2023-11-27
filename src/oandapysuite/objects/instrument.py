@@ -1,24 +1,24 @@
-import json
-import decimal
-from pandas import DataFrame
-
-from datetime import datetime
-from time import timezone
-
 from oandapysuite.stats import candlex
 from oandapysuite.exceptions import HighestGranularityException, LowestGranularityException
 
+import json
+import decimal
+from datetime import datetime
+from time import timezone
 
+from pandas import DataFrame
 
 D = decimal.Decimal
 decimal.getcontext().prec = 6
 time_format = '%Y-%m-%dT%X'
+
+
 class CandleCluster:
-    """This class serializes JSON data received when using
-    OANDAAPIObject to retreive candledata. It can be iterated
-    over like a list, and each individual candle is its own
-    object. The CandlesObject class is essentially a list of
-    individual candle objects."""
+    """This class serializes JSON data received when using OANDAAPIObject to retreive candledata. It can be iterated
+    over like a list, and each individual candle is its own object. The CandlesObject class is essentially a list of
+    individual candle objects. This class should never be directly accessed by the user for instantiation. If the
+    user wishes to create a CandleCluster object or retrieve candles, they should use the `get_candles()` method of the
+    API."""
     class Candle:
         """Serializes candle data."""
 
@@ -61,7 +61,6 @@ class CandleCluster:
         def __repr__(self):
             return self.__str__()
 
-
     def __init__(self, candsjson=None, cand_list=None):
         self.candles = []
         self.ind = 0
@@ -73,8 +72,6 @@ class CandleCluster:
                 self.candles.append(self.Candle(candle, self.instrument, self.gran))
 
         else: self.candles = cand_list
-
-
 
     def has_lower_timeframe(self) -> bool:
         return self.candles[0].has_lower_timeframe()
@@ -102,32 +99,52 @@ class CandleCluster:
     def __add__(self, b):
         if not self.instrument == b.instrument:
             raise ClusterConcatException(self.instrument, b.instrument)
+
+        # Checks to see if the open time on the first candle in self is greater than the open time on the last candle in
+        # the cluster which is being added to self. If it is, the b is copied into the resultant CandleCluster using
+        # `deepcopy`, and the self is appended to it. The resultant CandleCluster is then returned.
         if self[0].time > b[-1].time:
             result = deepcopy(b)
             for candle in self:
                 result.candles.append(candle)
+
+        # If the first open of the first candle in b is greater than the open of the first candle in self, then the
+        # inverse operation is done and the resultant object is b appended to self.
         elif b[0].time > self[-1].time:
             result = deepcopy(self)
             for candle in b:
                 result.candles.append(candle)
-        return  result
+        return result
 
+    def history(self, *properties) -> list:
+        """
+        Returns specified historic data from every `Candle` in a `CandleCluster`object in the form of a list.
+        May potentially be deprecated by `to_dataframe()` method in the future.
 
-    def history(self, valuex=None, valuey=None):
-        """Returns historic data from every `Candle` in a `CandleCluster`
-        object in the form of a list. For example, in order to get the close
-        on every candle in a CandleCluster object `x`, you would use
-        `x.history('close')`. You can also retreive historic data in the form
-        of a two-dimensional tuple, by passing in your specified values for `valuex`
-        and `valuey`. All values passed in must be attributes of the `Candle` object."""
-        return [getattr(candle, valuex) for candle in self.candles]
+        history(
+            *options: str
+        )
+
+        * Retrieve attributes from every candle by specifying the option. For example, if you want the open from
+        every candle in the candle cluster, you would pass 'open' as a string into the arguments.
+        """
+        data = []
+        for prop in properties:
+            data.append([getattr(candle, prop) for candle in self.candles])
+        return data
 
     def to_dataframe(self):
+        """
+        Returns the CandleCluster object as an OHLC+Time dataframe. Takes no arguments.
+
+        to_dataframe(self)
+
+        """
         data_dict = {
-                    'open' : self.history('open'),
+            'open' : self.history('open'),
             'high' : self.history('high'),
-            'low' : self.history('low'),
-            'close' :self.history('close'),
+            'low'  : self.history('low'),
+            'close':self.history('close'),
             'time' : self.history('time')
         }
         return DataFrame(data=data_dict)
