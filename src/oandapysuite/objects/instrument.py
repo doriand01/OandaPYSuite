@@ -131,6 +131,8 @@ class CandleCluster:
         data = []
         for prop in properties:
             data.append([getattr(candle, prop) for candle in self.candles])
+        if len(data) == 1:
+            return data[0]
         return data
 
     def to_dataframe(self):

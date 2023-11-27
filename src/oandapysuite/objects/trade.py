@@ -192,22 +192,22 @@ class Backtester(MarketSimulator):
 
     def __check_signal(self):
         cands = self.get_candle_cluster()
-        altavd = self.indicators[1](cands, on='open', period=100, name='altav', color='green')
-        sma = self.indicators[0](cands, on='open', period=200, name='sma', color='black')
-        mvdiff = self.signal(cands, [altavd, sma])
+        mvdiff_obj = self.signal()
+        mvdiff = mvdiff_obj.get_signal(self.current_candle, [self.altavd, self.sma])
+        print(mvdiff)
         if self.trade_type == 0:
-            if mvdiff.data.iloc[-1]['y'] == 1:
+            if mvdiff == 1:
                 print(f'Entering long @ {self.current_price}, time: {self.current_time}')
                 self.__enter_trade(trade_type=1)
-            if mvdiff.data.iloc[-1]['y'] == 2:
+            if mvdiff == 2:
                 print(f'Entering short @ {self.current_price}, time: {self.current_time}')
                 self.__enter_trade(trade_type=2)
         if self.trade_type != 0:
-            if self.trade_type == 1 and mvdiff.data.iloc[-1]['y'] == 3:
+            if self.trade_type == 1 and mvdiff == 3:
                 self.__exit_trade()
                 print(f'Exiting long, profit:{(self.current_price - self.entry_price) * 10000}  time: {self.current_time}')
                 self.trades.append((self.current_price - self.entry_price) * 10000)
-            if self.trade_type == 2 and mvdiff.data.iloc[-1]['y'] == 4:
+            if self.trade_type == 2 and mvdiff == 4:
                 self.__exit_trade()
                 print(f'Exiting long, profit:{(self.entry_price - self.current_price) * 10000}  time: {self.current_time}')
                 self.trades.append((self.entry_price - self.current_price) * 10000)
@@ -223,12 +223,14 @@ class Backtester(MarketSimulator):
             self.current_price += candle.low + up_or_down() *((candle.high-candle.low) * Decimal(ceil(random()*20)*5/200))
             if self.current_price > candle.high: self.current_price = candle.high
             elif self.current_price < candle.low: self.current_price = candle.low
-        if self.periods > 250:
+        if self.periods > 201:
             self.__check_signal()
 
     def __get_candle_at_time(self, candle, target_time):
         pass
         if candle.gran == self.generate_for:
+            self.altavd.add_candle(candle)
+            self.sma.add_candle(candle)
             adjusted_candle = deepcopy(candle)
             adjusted_candle.close = self.current_price
             self.candles_dict[candle.time] = adjusted_candle
@@ -263,6 +265,8 @@ class Backtester(MarketSimulator):
         self.periods = 0
 
     def run(self):
+        self.altavd = self.indicators[1](on='open', period=100, name='altav', color='green')
+        self.sma = self.indicators[0](on='open', period=200, name='sma', color='black')
         for i in range(len(self.window)):
             current_macro_candle = self.window[i]
             while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
@@ -278,9 +282,3 @@ class Backtester(MarketSimulator):
                 sleep(sleep_interval)
                 self.current_tick += 1
                 self.periods = len(list(self.candles_dict.values()))
-
-*
-
-
-
-

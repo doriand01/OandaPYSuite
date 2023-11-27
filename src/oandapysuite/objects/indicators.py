@@ -1,6 +1,8 @@
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from oandapysuite.objects.instrument import CandleCluster
 from oandapysuite.exceptions import IndicatorOptionsError
+
+import numpy as np
 
 import math
 import decimal
@@ -24,7 +26,7 @@ class BaseIndicator:
     def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
         return None
 
-    def __init__(self, candle_cluster, **options):
+    def __init__(self, candle_cluster: CandleCluster = None, **options):
         """
         __init__(
             self,
@@ -32,11 +34,27 @@ class BaseIndicator:
             options: dict(), <--- Parameters for your indicator. eg. period, etc...
             )
         """
+        self.candles_dict = {}
+        self.data_dict = {
+            'candles' : [],
+            'x' : [],
+            'y' : []
+        }
+        self.period = options['on']
         for key, value in options.items():
             setattr(self, key, value)
         self.is_subplot = False
-        self.data = self.ind_algorithm(candle_cluster, options)
-
+        self.options = options
+        if candle_cluster:
+            self.data = self.ind_algorithm(candle_cluster, options)
+        else:
+            self.data = DataFrame(
+                data={
+                    'candles' : [],
+                    'x'       : [],
+                    'y'       : []
+                }
+            )
 
 
 class SimpleMovingAverage(BaseIndicator):
@@ -52,14 +70,36 @@ class SimpleMovingAverage(BaseIndicator):
             datapoint = sum([getattr(candle_cluster[j], options['on'])  for j in range(i-options['period'],i)])/options['period']
             datapoints.append(datapoint)
         return datapoints
+
+    def add_candle(self, candle):
+        data_size = len(self.candles_dict.values())
+        if data_size < self.period and candle.time not in self.candles_dict:
+            self.data_dict['x'].append(None)
+            self.data_dict['y'].append(None)
+            self.data_dict['candles'].append(None)
+            self.candles_dict[candle.time] = candle
+        elif data_size >= self.period:
+            self.candles_dict[candle.time] = candle
+            self.data_dict['x'].append(candle.time)
+            period_sum = sum(
+                    [getattr(list(self.candles_dict.values())[j], self.options['on']) for j in range(
+                        data_size - self.period, data_size
+                    )]
+                )
+            period_avg = period_sum / self.period
+            self.data_dict['y'].append(period_avg)
+            self.data_dict['candles'].append(candle)
+        self.data = DataFrame(data=self.data_dict)
+
     def ind_algorithm(self, candle_cluster: CandleCluster, options) -> DataFrame:
         self.valid_options = ['on', 'period', 'color','name']
+        self.most_recent_period_sum = 0
         if not all([key in self.valid_options for key in options.keys()]):
             raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
         datapoints = self.__ma_helper(candle_cluster, options)
         data_dict = {
             'y' : self.__ma_helper(candle_cluster, options),
-            'x'       : candle_cluster.history('time')
+            'x' : candle_cluster.history('time')
         }
         return DataFrame(data=data_dict)
 
@@ -86,6 +126,7 @@ class SampleStandardDeviation(BaseIndicator):
                 'y' : datapoints
             }
         )
+
 
 class RelativeStrengthIndex(BaseIndicator):
 
@@ -177,6 +218,27 @@ class StandardAverageDifference(BaseIndicator):
         )
 
 class AltAverageDifference(BaseIndicator):
+    def add_candle(self, candle):
+        self.is_subplot = True
+        data_size = len(self.candles_dict.values())
+        if data_size < self.period and candle.time not in self.candles_dict:
+            self.data_dict['x'].append(None)
+            self.data_dict['y'].append(None)
+            self.data_dict['candles'].append(None)
+            self.candles_dict[candle.time] = candle
+        elif data_size >= self.period:
+            self.candles_dict[candle.time] = candle
+            self.data_dict['x'].append(candle.time)
+            cand_vals = list(self.candles_dict.values())
+            period_diff_sum = sum(
+                    [getattr(candle, self.options['on']) - getattr(cand_vals[j], self.options['on']) for j in range(
+                        data_size - self.period, data_size
+                    )]
+                )
+            period_avg_diff = period_diff_sum / self.period
+            self.data_dict['y'].append(period_avg_diff)
+            self.data_dict['candles'].append(candle)
+        self.data = DataFrame(data=self.data_dict)
 
     def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
         self.valid_options = ['on', 'period', 'color', 'name']
@@ -226,7 +288,7 @@ class AverageAverageDifference(BaseIndicator):
             if i < 2 * options['period'] -1:
                 datapoints.append(None)
                 continue
-            avg_diff_dp =                getattr(candle_cluster[i], options['on']) + (decimal.Decimal(
+            avg_diff_dp = getattr(candle_cluster[i], options['on']) + (decimal.Decimal(
                                 sum([avd_datapoints[j+1] for j in range(i-options['period'], i)])) / decimal.Decimal(options['period']))
             datapoints.append(avg_diff_dp)
         pass

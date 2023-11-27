@@ -75,7 +75,7 @@ class UnixTime:
         return f"UnixTime Object: {self.datetime_repr.strftime('%Y-%m-%d %H:%M')}"
 
     @staticmethod
-    def randomtime(start: str, end: str) -> UnixTime:
+    def randomtime(start: str, end: str):
         """
         Provides a returns a random time between `start` and `end` as a
         UnixTime object.

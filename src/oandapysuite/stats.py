@@ -1,4 +1,3 @@
-from .endpoints import *
 from numpy import diff
 
 import decimal
