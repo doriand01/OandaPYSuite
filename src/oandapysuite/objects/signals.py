@@ -33,15 +33,15 @@ class AvDiffSignal(BaseSignal):
         period_max = max([val for val in params[0].data['y'].tolist() if val is not None][-period:])
         this_cand = candle.close
         if not self.in_position:
-            if avdiff <= period_min and this_cand < sma - Decimal(0.0005):
+            if avdiff <= period_min and this_cand < sma - Decimal(0.0010) and abs(avdiff) > Decimal(0.001):
                 self.entry_price = candle.close
-                self.stop_loss = this_cand + avdiff * Decimal(1.2)
+                self.stop_loss = this_cand + avdiff * Decimal(0.85)
                 self.take_profit = this_cand - avdiff * Decimal(1.1)
                 self.in_position = 1
                 return 1
-            elif avdiff >= period_max and this_cand > sma + Decimal(0.0005):
+            elif avdiff >= period_max and this_cand > sma + Decimal(0.0010) and abs(avdiff) > Decimal(0.001):
                 self.entry_price = candle.close
-                self.stop_loss = this_cand + avdiff * Decimal(1.2)
+                self.stop_loss = this_cand + avdiff * Decimal(0.85)
                 self.take_profit = this_cand - avdiff * Decimal(1.1)
                 self.in_position = 3
                 return 3
@@ -49,10 +49,10 @@ class AvDiffSignal(BaseSignal):
                 return 0
         elif self.in_position != False:
                 # Take profit             Stop loss
-            if (this_cand >= self.take_profit or this_cand <= self.stop_loss)  and self.in_position == 1:
+            if (this_cand >= sma or this_cand <= self.stop_loss)  and self.in_position == 1:
                 self.in_position = False
                 return 2
-            elif (this_cand <= self.take_profit or this_cand >= self.stop_loss)  and self.in_position == 3:
+            elif (this_cand <= sma or this_cand >= self.stop_loss)  and self.in_position == 3:
                 self.in_position = False
                 return 4
             else:

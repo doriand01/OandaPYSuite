@@ -204,13 +204,13 @@ class Backtester(MarketSimulator):
                 self.__enter_trade(trade_type=3)
         if self.trade_type != 0:
             if self.trade_type == 1 and mvdiff == 2:
-                self.__exit_trade()
-                print(f'Exiting long, price:{self.current_price}  time: {self.current_time}')
+                print(f'Exiting long, price:{self.current_price}  time: {self.current_time}, profit:{(self.current_price-self.entry_price)*10000}')
                 self.trades.append((self.current_price - self.entry_price))
-            if self.trade_type == 3 and mvdiff == 4:
                 self.__exit_trade()
-                print(f'Exiting short, price:{self.current_price}  time: {self.current_time}')
+            if self.trade_type == 3 and mvdiff == 4:
+                print(f'Exiting short, price:{self.current_price}  time: {self.current_time}, profit:{(self.entry_price-self.current_price)*10000}')
                 self.trades.append((self.entry_price - self.current_price))
+                self.__exit_trade()
 
     def __update_price(self, candle, is_close=False, is_open=False):
         if is_close: self.current_price = candle.close
@@ -223,7 +223,7 @@ class Backtester(MarketSimulator):
             self.current_price += candle.low + up_or_down() *((candle.high-candle.low) * Decimal(ceil(random()*20)*5/200))
             if self.current_price > candle.high: self.current_price = candle.high
             elif self.current_price < candle.low: self.current_price = candle.low
-        if self.periods > 30:
+        if self.periods > 202:
             self.__check_signal()
 
     def __get_candle_at_time(self, candle, target_time):
@@ -265,8 +265,8 @@ class Backtester(MarketSimulator):
         self.periods = 0
 
     def run(self):
-        self.altavd = self.indicators[1](on='open', period=9, name='altav', color='green')
-        self.sma = self.indicators[0](on='open', period=24, name='sma', color='black')
+        self.altavd = self.indicators[1](on='open', period=100, name='altav', color='green')
+        self.sma = self.indicators[0](on='open', period=200, name='sma', color='black')
         self.sig_mvdiff = self.signal()
         for i in range(len(self.window)):
             current_macro_candle = self.window[i]
