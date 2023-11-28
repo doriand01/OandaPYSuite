@@ -10,20 +10,26 @@ def main():
 
     api = opy.api.API()
 
-    candles = api.get_candles('USD_CAD', 'M1', count=5000)
-    avg_200day = opy.SMA(on='close', period=200, color='purple', name='sma 200')
-    altavg = opy.objects.indicators.AltAverageDifference(period=100, on='open', name='altav', color='black')
+    candles = api.get_candles('GBP_USD', 'M1', count=2000)
+    avg_50day = opy.SMA(on='close', period=24, color='purple', name='sma 50')
+    avg_24day = opy.SMA(on='close', period=24, color='blue', name='sma 50')
+    avg_9day = opy.SMA(on='close', period=9, color='green', name='sma 50')
+    altavg = opy.objects.indicators.AltAverageDifference(period=9, on='open', name='altav', color='black')
     AVDIFF = opy.objects.signals.AvDiffSignal()
     sigs = []
     for candle in candles.candles:
-        avg_200day.add_candle(candle)
+        avg_50day.add_candle(candle)
+        avg_24day.add_candle(candle)
+        avg_9day.add_candle(candle)
         altavg.add_candle(candle)
-        sigs.append(AVDIFF.get_signal(candle, [altavg, avg_200day]))
+        sigs.append(AVDIFF.get_signal(candle, [altavg, avg_50day]))
 
     sigdict = dict(zip(candles.history('time'), sigs))
     api.initialize_chart(candles)
     api.add_indicator(altavg)
-    api.add_indicator(avg_200day)
+    api.add_indicator(avg_50day)
+    api.add_indicator(avg_24day)
+    api.add_indicator(avg_9day)
     for index, point in sigdict.items():
         if point == 1:
             api.fig.add_vline(x=index, line_color="green")

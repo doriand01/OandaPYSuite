@@ -14,6 +14,8 @@ based on a chart's entire data, they are now calculated as you add each
 to the chart. This makes calculating real-time indicator data and generating
 the latest signals much faster.
 
-# 0.2.1a - Unreleased 
+# 0.2.1a -  27 November 2023 #
 
-- Continue optimizing MarketSimulator and Backtester classes
+- Fixed bug in `Backtester` class that caused improper reading of signals and
+resulted in improper trade entry and exit
+- More tick optimizations
