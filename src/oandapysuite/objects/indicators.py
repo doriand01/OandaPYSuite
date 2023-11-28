@@ -77,6 +77,7 @@ class SimpleMovingAverage(BaseIndicator):
 
 class SampleStandardDeviation(BaseIndicator):
 
+    ### Will be deprecated soon!!!
     def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
         self.valid_options = ['on', 'period', 'color', 'z', 'name']
         datapoints = []
@@ -166,6 +167,7 @@ class PopulationStandardDeviation(BaseIndicator):
 
 class StandardAverageDifference(BaseIndicator):
 
+    # will be deprecated soon!!!
     def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
         self.valid_options = ['on', 'period', 'color', 'name']
         self.period = options['period']
@@ -234,49 +236,3 @@ class AltAverageDifference(BaseIndicator):
                 'y' : datapoints
             }
         )
-
-
-class AverageAverageDifference(BaseIndicator):
-
-    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
-        self.valid_options = ['on', 'period', 'color', 'name']
-        stavdf = []
-        datapoints = []
-        avd_datapoints = []
-        if not all([key in self.valid_options for key in options.keys()]):
-            raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
-        for i in range(len(candle_cluster)):
-            if i < options['period']:
-                avd_datapoints.append(None)
-                continue
-            this_cand = getattr(candle_cluster[i], options['on'])
-            differences = sum(this_cand - getattr(candle_cluster[j], options['on']) for j in range(i-options['period'], i))
-            avg_diff = differences/options['period']
-            avd_datapoints.append((avg_diff))
-            normalized_diff = this_cand + (avg_diff/this_cand)
-            stavdf.append((normalized_diff))
-
-        for i in range(len(avd_datapoints)):
-            if i < 2 * options['period'] -1:
-                datapoints.append(None)
-                continue
-            avg_diff_dp = getattr(candle_cluster[i], options['on']) + (decimal.Decimal(
-                                sum([avd_datapoints[j+1] for j in range(i-options['period'], i)])) / decimal.Decimal(options['period']))
-            datapoints.append(avg_diff_dp)
-        pass
-        return DataFrame(
-            data=
-            {
-                'x' : candle_cluster.history('time'),
-                'y' : datapoints
-            }
-        )
-
-
-
-
-
-
-
-
-

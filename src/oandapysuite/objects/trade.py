@@ -1,5 +1,8 @@
+import oandapysuite.objects.signals
 from oandapysuite.objects.instrument import CandleCluster
 from oandapysuite.stats import candlex
+from oandapysuite.objects.indicators import BaseIndicator
+from oandapysuite.objects.signals import BaseSignal
 
 from datetime import datetime, timedelta
 from random import random
@@ -117,7 +120,15 @@ class MarketSimulator:
     def play(self):
         self.paused = False
 
-    def __init__(self, window, api_object, speed_factor=1.0, ticks_per_second=20, generate_for='S5'):
+    def __init__(
+            self,
+            window,
+            api_object,
+            speed_factor=1.0,
+            ticks_per_second=20,
+            generate_for='S5',
+            indicators: list[BaseIndicator] = None,
+            signal: BaseSignal = None):
         """
         Creates the MarketSimulator.
 
@@ -143,6 +154,8 @@ class MarketSimulator:
         self.generate_for = generate_for
         self.current_candle = self.__get_candle_at_time(window[0], self.current_time)
         self.current_tick = 0
+        self.signal = signal
+        self.indicators = indicators
         self.paused = False
 
     def get_candle_cluster(self):
@@ -191,23 +204,22 @@ class Backtester(MarketSimulator):
         self.trade_type = 0
 
     def __check_signal(self):
-        cands = self.get_candle_cluster()
-        mvdiff = self.sig_mvdiff.get_signal(self.current_candle, [self.altavd, self.sma])
+        sig_val = self.signal.get_signal(self.current_candle, self.indicators)
         if self.trade_type == 0:
-            if mvdiff == 1:
-                print(f'Entering long @ {self.current_price}, time: {self.current_time} TP:{self.sig_mvdiff.take_profit}, SL:{self.sig_mvdiff.stop_loss}')
+            if sig_val == 1:
+                print(f'Entering long @ {self.current_price}, time: {self.current_time} TP:{self.signal.take_profit}, SL:{self.signal.stop_loss}')
                 self.entry_price = Decimal(self.current_price)
                 self.__enter_trade(trade_type=1)
-            if mvdiff == 3:
-                print(f'Entering short @ {self.current_price}, time: {self.current_time}, TP:{self.sig_mvdiff.take_profit}, SL:{self.sig_mvdiff.stop_loss}')
+            if sig_val == 3:
+                print(f'Entering short @ {self.current_price}, time: {self.current_time}, TP:{self.signal.take_profit}, SL:{self.signal.stop_loss}')
                 self.entry_price = Decimal(self.current_price)
                 self.__enter_trade(trade_type=3)
         if self.trade_type != 0:
-            if self.trade_type == 1 and mvdiff == 2:
+            if self.trade_type == 1 and sig_val == 2:
                 print(f'Exiting long, price:{self.current_price}  time: {self.current_time}, profit:{(self.current_price-self.entry_price)*10000}')
                 self.trades.append((self.current_price - self.entry_price))
                 self.__exit_trade()
-            if self.trade_type == 3 and mvdiff == 4:
+            if self.trade_type == 3 and sig_val == 4:
                 print(f'Exiting short, price:{self.current_price}  time: {self.current_time}, profit:{(self.entry_price-self.current_price)*10000}')
                 self.trades.append((self.entry_price - self.current_price))
                 self.__exit_trade()
@@ -229,8 +241,8 @@ class Backtester(MarketSimulator):
     def __get_candle_at_time(self, candle, target_time):
         pass
         if candle.gran == self.generate_for:
-            self.altavd.add_candle(candle)
-            self.sma.add_candle(candle)
+            for indicator in self.indicators:
+                indicator.add_candle(candle)
             adjusted_candle = deepcopy(candle)
             adjusted_candle.close = self.current_price
             self.candles_dict[candle.time] = adjusted_candle
@@ -253,21 +265,26 @@ class Backtester(MarketSimulator):
                     return self.__get_candle_at_time(cand, target_time)
         return candle
 
-    def __init__(self, window, api_object, speed_factor=1.0, ticks_per_second=20, generate_for='M1', signal=None, indicators=None):
+    def __init__(
+            self,
+            window,
+            api_object,
+            speed_factor: float = 1.0,
+            ticks_per_second: int = 20,
+            generate_for: str = 'M1',
+            indicators: list[BaseIndicator] = None,
+            signal: BaseSignal = None):
         super().__init__(window, api_object, speed_factor=speed_factor, ticks_per_second=ticks_per_second)
         self.signal = signal
         self.indicators = indicators
         self.generate_for = generate_for
         self.entry_price = 0
         self.trade_type = 0
-        self.disp = 0
         self.trades = []
         self.periods = 0
 
+# This function will be refactored to directly call from MarketSimulator's run() method.
     def run(self):
-        self.altavd = self.indicators[1](on='open', period=100, name='altav', color='green')
-        self.sma = self.indicators[0](on='open', period=200, name='sma', color='black')
-        self.sig_mvdiff = self.signal()
         for i in range(len(self.window)):
             current_macro_candle = self.window[i]
             while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):

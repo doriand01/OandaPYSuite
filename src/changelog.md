@@ -58,3 +58,7 @@ with candle data from the market.
 rather than a whole candle cluster. You can also pass in your indicators pre-populated with data
 to your signal class to get a signal.
 - Clean up changelog and other files
+
+### 0.2.3a ###
+- Removed `AverageAverageDifference` indicator.
+- Removed magic variables and magic constants from `Backtester` class.

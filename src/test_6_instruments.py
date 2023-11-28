@@ -34,6 +34,7 @@ if __name__ == "__main__":
             if point['y'] == 4:
                 api_obj.fig.add_vline(x=point['x'], line_width=3, line_dash="dash", line_color="red")
 
+
     while True:
         for i in range(len(insts)):
 

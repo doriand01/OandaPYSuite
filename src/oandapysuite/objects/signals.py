@@ -33,13 +33,13 @@ class AvDiffSignal(BaseSignal):
         period_max = max([val for val in params[0].data['y'].tolist() if val is not None][-period:])
         this_cand = candle.close
         if not self.in_position:
-            if avdiff <= period_min and this_cand < sma - Decimal(0.0010) and abs(avdiff) > Decimal(0.001):
+            if avdiff <= period_min and this_cand < sma - Decimal(0.0006):
                 self.entry_price = candle.close
                 self.stop_loss = this_cand + avdiff * Decimal(0.85)
                 self.take_profit = this_cand - avdiff * Decimal(1.1)
                 self.in_position = 1
                 return 1
-            elif avdiff >= period_max and this_cand > sma + Decimal(0.0010) and abs(avdiff) > Decimal(0.001):
+            elif avdiff >= period_max and this_cand > sma + Decimal(0.0006):
                 self.entry_price = candle.close
                 self.stop_loss = this_cand + avdiff * Decimal(0.85)
                 self.take_profit = this_cand - avdiff * Decimal(1.1)
