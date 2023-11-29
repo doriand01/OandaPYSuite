@@ -33,28 +33,46 @@ class AvDiffSignal(BaseSignal):
         period_max = max([val for val in params[0].data['y'].tolist() if val is not None][-period:])
         this_cand = candle.close
         if not self.in_position:
-            if avdiff <= period_min and this_cand < sma - Decimal(0.0006):
-                self.entry_price = candle.close
-                self.stop_loss = this_cand + avdiff * Decimal(0.85)
-                self.take_profit = this_cand - avdiff * Decimal(1.1)
-                self.in_position = 1
-                return 1
-            elif avdiff >= period_max and this_cand > sma + Decimal(0.0006):
-                self.entry_price = candle.close
-                self.stop_loss = this_cand + avdiff * Decimal(0.85)
-                self.take_profit = this_cand - avdiff * Decimal(1.1)
-                self.in_position = 3
-                return 3
+            if not self.pos_preconf:
+                if avdiff <= period_min and this_cand < sma - Decimal(0.0005):
+                    self.conf_price = this_cand - avdiff * Decimal(0.8)
+                    self.pos_preconf = 1
+                    return 0
+                elif avdiff >= period_max and this_cand > sma + Decimal(0.0005):
+                    self.conf_price = this_cand - avdiff * Decimal(0.8)
+                    self.pos_preconf = 3
+                    return 0
+            elif self.pos_preconf:
+                if this_cand <= self.conf_price and self.pos_preconf == 1:
+                    self.in_position = 1
+                    self.entry_price = this_cand
+                    self.stop_loss = this_cand - abs(avdiff) * 4
+                    self.take_profit = this_cand + abs(avdiff)
+                    self.pos_preconf = False
+                    return 1
+                elif this_cand >= self.conf_price and self.pos_preconf == 3:
+                    self.in_position = 3
+                    self.entry_price = this_cand
+                    self.stop_loss = this_cand + abs(avdiff) * 4
+                    self.take_profit = this_cand - abs(avdiff)
+                    self.pos_preconf = False
+                    return 3
+                else:
+                    return 0
             else:
                 return 0
-        elif self.in_position != False:
+        elif self.in_position:
                 # Take profit             Stop loss
-            if (this_cand >= sma or this_cand <= self.stop_loss)  and self.in_position == 1:
+            if (this_cand >= self.take_profit or this_cand <= self.stop_loss) and self.in_position == 1:
                 self.in_position = False
                 return 2
-            elif (this_cand <= sma or this_cand >= self.stop_loss)  and self.in_position == 3:
+            elif (this_cand <= self.take_profit or this_cand >= self.stop_loss) and self.in_position == 3:
                 self.in_position = False
                 return 4
             else:
                 return 0
+
+    def __init__(self):
+        super().__init__()
+        self.pos_preconf = False
 

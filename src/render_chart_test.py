@@ -10,11 +10,11 @@ def main():
 
     api = opy.api.API()
 
-    candles = api.get_candles('USD_CAD', 'M1', count=5000)
-    avg_50day = opy.SMA(on='close', period=50, color='purple', name='sma 100')
+    candles = api.get_candles('USD_CAD', 'M1', count=1440)
+    avg_50day = opy.SMA(on='close', period=30, color='purple', name='sma 100')
     avg_24day = opy.SMA(on='close', period=24, color='blue', name='sma 50')
     avg_9day = opy.SMA(on='close', period=15, color='green', name='sma 20')
-    altavg = opy.objects.indicators.AltAverageDifference(period=25, on='open', name='altav', color='black')
+    altavg = opy.objects.indicators.AverageDifference(period=15, on='open', name='altav', color='black')
     AVDIFF = opy.objects.signals.AvDiffSignal()
     sigs = []
     for candle in candles.candles:

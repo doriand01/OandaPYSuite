@@ -1,11 +1,13 @@
-from pandas import DataFrame, Series
 from oandapysuite.objects.instrument import CandleCluster
 from oandapysuite.exceptions import IndicatorOptionsError
 
-import numpy as np
-
 import math
 import decimal
+
+import numpy as np
+from pandas import DataFrame, Series
+
+
 
 D = decimal.Decimal
 
@@ -165,33 +167,7 @@ class PopulationStandardDeviation(BaseIndicator):
 
 ### My own
 
-class StandardAverageDifference(BaseIndicator):
-
-    # will be deprecated soon!!!
-    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
-        self.valid_options = ['on', 'period', 'color', 'name']
-        self.period = options['period']
-        datapoints = []
-        if not all([key in self.valid_options for key in options.keys()]):
-            raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
-        for i in range(len(candle_cluster)):
-            if i < options['period']:
-                datapoints.append(None)
-                continue
-            this_cand = getattr(candle_cluster[i], options['on'])
-            differences = sum(this_cand - getattr(candle_cluster[j], options['on']) for j in range(i-options['period'], i))
-            avg_diff = differences/options['period']
-            normalized_diff = this_cand + (avg_diff/this_cand)
-            datapoints.append((normalized_diff))
-        return DataFrame(
-            data=
-            {
-                'x' : candle_cluster.history('time'),
-                'y' : datapoints
-            }
-        )
-
-class AltAverageDifference(BaseIndicator):
+class AverageDifference(BaseIndicator):
     def add_candle(self, candle):
         self.is_subplot = True
         data_size = len(self.candles_dict.values())
@@ -213,26 +189,3 @@ class AltAverageDifference(BaseIndicator):
             self.data_dict['y'].append(period_avg_diff)
             self.data_dict['candles'].append(candle)
         self.data = DataFrame(data=self.data_dict)
-
-    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
-        self.valid_options = ['on', 'period', 'color', 'name']
-        self.is_subplot = True
-        self.period = options['period']
-        datapoints = []
-        if not all([key in self.valid_options for key in options.keys()]):
-            raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
-        for i in range(len(candle_cluster)):
-            if i < options['period']:
-                datapoints.append(None)
-                continue
-            this_cand = getattr(candle_cluster[i], options['on'])
-            differences = sum(this_cand - getattr(candle_cluster[j], options['on']) for j in range(i-options['period'], i))
-            avg_diff = differences/options['period']
-            datapoints.append((avg_diff))
-        return DataFrame(
-            data=
-            {
-                'x' : candle_cluster.history('time'),
-                'y' : datapoints
-            }
-        )

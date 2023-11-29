@@ -54,12 +54,13 @@ class MarketSimulator:
             elif self.current_price < candle.low: self.current_price = candle.low
 
     # Uses recursive logic to get the relevant candle for a specified target time. The candle to be returned depends on
-    # What the target time is, as well as the speed of the simulation. In order for the simulation to run properly,
-    # There needs to be enough tick updates within a specified timeframe for the market to correctly simulate the historic
-    # Each tick update will update the current price of the instrument on the market, and there needs to be at the very
-    # minimum, 4 updates for the price to reflect each price component: open, high, low and close. If the time delta for
-    # each tick update is greater than 1/4 the length of the timeframe, then that timeframe is too low to be simulated,
-    # and the candles from the higher timeframe will be returned instead. Otherwise, the candles from the lowest possible
+    # what the target time is, as well as the speed of the simulation. In order for the simulation to run properly,
+    # there needs to be enough tick updates within a specified timeframe (at least four) for the market to correctly
+    # simulate the historic price components for each candle (open, low high, close). If the simulation is running too
+    # fast, the tick updates will not be able to properly simulate the price components for each candle, and the
+    # simulation will not be accurate. If the time delta (how far forward in time the simulation advances per tick)
+    # is greater than 1/4 the length of the timeframe, then that timeframe is too low to be simulated, and the
+    # candles from the higher  timeframe will be returned instead. Otherwise, the candles from the lowest possible
     # timeframe that can be simulated under the simulation conditions will be returned.
     def __get_candle_at_time(self, candle, target_time):
 
@@ -105,13 +106,9 @@ class MarketSimulator:
                 if cand.has_lower_timeframe():
                     return self.__get_candle_at_time(cand, target_time)
 
-                # If the child has no lower timeframe it is returned.
-                return cand
-
         # If a candle has not been returned yet, and the candle is of the lowest possible timeframe,
         # (typically the S5 timeframe) then the candle is returned, representing the end of the recursion.
-        if not candle.has_lower_timeframe():
-            return candle
+        return candle
 
     def pause(self):
         print("Simulation paused                  ", end="\r")
@@ -154,6 +151,7 @@ class MarketSimulator:
         self.generate_for = generate_for
         self.current_candle = self.__get_candle_at_time(window[0], self.current_time)
         self.current_tick = 0
+        self.periods = 0
         self.signal = signal
         self.indicators = indicators
         self.paused = False
@@ -186,11 +184,14 @@ class MarketSimulator:
                     self.current_candle = self.__get_candle_at_time(current_macro_candle, self.current_time)
                     self.__update_price(self.current_candle, is_open=True)
                 self.__update_price(self.current_candle)
-                print(f'{self.current_time} price:{self.current_price}', end="\r")
+                print(
+                    f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}',
+                    end="\r")
                 self.current_time += timedelta(seconds=(self.speed_factor / self.tps))
                 sleep_interval = 1 / self.tps
                 sleep(sleep_interval)
                 self.current_tick += 1
+                self.periods = len(list(self.candles_dict.values()))
 
 
 class Backtester(MarketSimulator):
@@ -207,20 +208,25 @@ class Backtester(MarketSimulator):
         sig_val = self.signal.get_signal(self.current_candle, self.indicators)
         if self.trade_type == 0:
             if sig_val == 1:
-                print(f'Entering long @ {self.current_price}, time: {self.current_time} TP:{self.signal.take_profit}, SL:{self.signal.stop_loss}')
+                print(f'''Entering long @ {self.current_price}, time: {self.current_time} '''
+                      f'''TP:{self.signal.take_profit}, SL:{self.signal.stop_loss}''')
                 self.entry_price = Decimal(self.current_price)
                 self.__enter_trade(trade_type=1)
             if sig_val == 3:
-                print(f'Entering short @ {self.current_price}, time: {self.current_time}, TP:{self.signal.take_profit}, SL:{self.signal.stop_loss}')
+                print(f'''Entering short @ {self.current_price}, time: {self.current_time},''' 
+                f'''TP:{self.signal.take_profit}, SL:{self.signal.stop_loss}''')
                 self.entry_price = Decimal(self.current_price)
                 self.__enter_trade(trade_type=3)
+        # Consider refactoring to reduce nesting.
         if self.trade_type != 0:
             if self.trade_type == 1 and sig_val == 2:
-                print(f'Exiting long, price:{self.current_price}  time: {self.current_time}, profit:{(self.current_price-self.entry_price)*10000}')
+                print(f'''Exiting long, price:{self.current_price}  time: {self.current_time},''' 
+                f'''profit:{(self.current_price-self.entry_price)*10000}''')
                 self.trades.append((self.current_price - self.entry_price))
                 self.__exit_trade()
             if self.trade_type == 3 and sig_val == 4:
-                print(f'Exiting short, price:{self.current_price}  time: {self.current_time}, profit:{(self.entry_price-self.current_price)*10000}')
+                print(f'''Exiting short, price:{self.current_price}  time: {self.current_time},''' 
+                f'''profit:{(self.entry_price-self.current_price)*10000}''')
                 self.trades.append((self.entry_price - self.current_price))
                 self.__exit_trade()
 
@@ -235,7 +241,7 @@ class Backtester(MarketSimulator):
             self.current_price += candle.low + up_or_down() *((candle.high-candle.low) * Decimal(ceil(random()*20)*5/200))
             if self.current_price > candle.high: self.current_price = candle.high
             elif self.current_price < candle.low: self.current_price = candle.low
-        if self.periods > 202:
+        if self.periods > max([indicator.period for indicator in self.indicators]) + 1:
             self.__check_signal()
 
     def __get_candle_at_time(self, candle, target_time):
@@ -260,7 +266,6 @@ class Backtester(MarketSimulator):
                 if target_time < cand.time:
                     continue
 
-                # Cache the result
                 if cand.has_lower_timeframe():
                     return self.__get_candle_at_time(cand, target_time)
         return candle
@@ -281,9 +286,7 @@ class Backtester(MarketSimulator):
         self.entry_price = 0
         self.trade_type = 0
         self.trades = []
-        self.periods = 0
 
-# This function will be refactored to directly call from MarketSimulator's run() method.
     def run(self):
         for i in range(len(self.window)):
             current_macro_candle = self.window[i]

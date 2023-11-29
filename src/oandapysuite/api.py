@@ -5,7 +5,7 @@ from oandapysuite.endpoints import account as acc
 from oandapysuite.endpoints import instrument
 from oandapysuite.objects import trade
 from oandapysuite.objects.instrument import CandleCluster
-from oandapysuite.objects.indicators import BaseIndicator, AltAverageDifference
+from oandapysuite.objects.indicators import BaseIndicator, AverageDifference
 from oandapysuite.objects.datatypes import UnixTime
 
 import json

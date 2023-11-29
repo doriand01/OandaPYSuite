@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
             cands = insts[i]
             api_obj = api_obj_list[i]
-            altavd = opy.objects.indicators.AltAverageDifference(cands, on='open', period=120, name='altav', color='green')
+            altavd = opy.objects.indicators.AverageDifference(cands, on='open', period=120, name='altav', color='green')
             sma = opy.SMA(cands, on='open', period=120, name='sma', color='black')
             mavdiff = opy.objects.signals.AvDiffSignal(cands, [altavd, sma])
             api_obj.trade_signal(cands.instrument, mavdiff, cands[-1].close)
