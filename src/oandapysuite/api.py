@@ -211,14 +211,40 @@ class API:
                 row=len(old_fig.data)+1,
                 col=1)
         else:
-            self.fig.add_trace(
-                plot.Scatter(
-                    name=indicator.name,
-                    x = indicator.data['x'],
-                    y = indicator.data['y'],
-                    mode='lines',
-                    line=plot.scatter.Line(color=indicator.color)),
-            )
+            if indicator.multi_y:
+                self.fig.add_trace(
+                    plot.Scatter(
+                        name=indicator.name,
+                        x = indicator.data['x'],
+                        y = indicator.data['y'],
+                        mode='lines',
+                        line=plot.scatter.Line(color=indicator.color)),
+                )
+                self.fig.add_trace(
+                    plot.Scatter(
+                        name=indicator.name,
+                        x = indicator.data['x'],
+                        y = indicator.data['y1'],
+                        mode='lines',
+                        line=plot.scatter.Line(color=indicator.color)),
+                )
+                self.fig.add_trace(
+                    plot.Scatter(
+                        name=indicator.name,
+                        x = indicator.data['x'],
+                        y = indicator.data['y2'],
+                        mode='lines',
+                        line=plot.scatter.Line(color=indicator.color)),
+                )
+            else:
+                self.fig.add_trace(
+                    plot.Scatter(
+                        name=indicator.name,
+                        x = indicator.data['x'],
+                        y = indicator.data['y'],
+                        mode='lines',
+                        line=plot.scatter.Line(color=indicator.color)),
+                )
 
     def render_chart(self, live=False, data_df=None):
         if not live:

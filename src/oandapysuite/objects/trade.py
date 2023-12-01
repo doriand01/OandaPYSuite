@@ -234,14 +234,11 @@ class Backtester(MarketSimulator):
         if is_close: self.current_price = candle.close
         elif is_open: self.current_price = candle.open
         else:
-            if candle.open > candle.close:
-                up_or_down = lambda: Decimal(1.2) if random() > .5 else -1
-            else:
-                up_or_down = lambda: 1 if random() > .5 else Decimal(-1.2)
-            self.current_price += candle.low + up_or_down() *((candle.high-candle.low) * Decimal(ceil(random()*20)*5/200))
+            up_or_down = [lambda: 1 if random() > .5 else Decimal(-1.2), lambda: Decimal(1.2) if random() > .5 else -1][candle.open > candle.close]
+            self.current_price += up_or_down() * ((candle.high-candle.low) * Decimal(ceil(random()*20)*5/200))
             if self.current_price > candle.high: self.current_price = candle.high
             elif self.current_price < candle.low: self.current_price = candle.low
-        if self.periods > max([indicator.period for indicator in self.indicators]) + 1:
+        if self.periods > self.start_signal:
             self.__check_signal()
 
     def __get_candle_at_time(self, candle, target_time):
@@ -286,6 +283,7 @@ class Backtester(MarketSimulator):
         self.entry_price = 0
         self.trade_type = 0
         self.trades = []
+        self.start_signal = max([indicator.period for indicator in self.indicators]) + 1
 
     def run(self):
         for i in range(len(self.window)):

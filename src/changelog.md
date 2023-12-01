@@ -66,3 +66,10 @@ to your signal class to get a signal.
 ### 0.2.4a - 29 November 2023 ###
 - Tidying up, removing unused code, and fixing bugs. MarketSimulator is about
 as optimized as it can get for now. May probably be optimized further in the future.
+
+### 0.3.0a - 30 November 2023 ###
+- Begin optimizing indicators. Indicators are now calculated as you add candles to the chart.
+- Added Bollinger Bands, ZScoreOfPrice, SampleStandardDeviation, DifferenceBetween and indicators.
+- Need to remove magic function from api.add_indicator() that was coded specifically
+for the BollingerBands. Find better way to accomodate graphing multiple y values on the same
+x axis.

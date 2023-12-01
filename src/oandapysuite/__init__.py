@@ -6,7 +6,6 @@ from oandapysuite import endpoints
 from oandapysuite import objects
 
 SMA = objects.indicators.SimpleMovingAverage
-PopSTD = objects.indicators.PopulationStandardDeviation
 SSTD = objects.indicators.SampleStandardDeviation
 
 if not settings.AUTH_FILEPATH:

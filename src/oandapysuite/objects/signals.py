@@ -35,25 +35,25 @@ class AvDiffSignal(BaseSignal):
         if not self.in_position:
             if not self.pos_preconf:
                 if avdiff <= period_min and this_cand < sma - Decimal(0.0005):
-                    self.conf_price = this_cand - avdiff * Decimal(0.8)
+                    self.conf_price = this_cand - avdiff * Decimal(0.7)
                     self.pos_preconf = 1
                     return 0
                 elif avdiff >= period_max and this_cand > sma + Decimal(0.0005):
-                    self.conf_price = this_cand - avdiff * Decimal(0.8)
+                    self.conf_price = this_cand - avdiff * Decimal(0.7)
                     self.pos_preconf = 3
                     return 0
             elif self.pos_preconf:
                 if this_cand <= self.conf_price and self.pos_preconf == 1:
                     self.in_position = 1
                     self.entry_price = this_cand
-                    self.stop_loss = this_cand - abs(avdiff) * 4
+                    self.stop_loss = this_cand - abs(avdiff) * 2
                     self.take_profit = this_cand + abs(avdiff)
                     self.pos_preconf = False
                     return 1
                 elif this_cand >= self.conf_price and self.pos_preconf == 3:
                     self.in_position = 3
                     self.entry_price = this_cand
-                    self.stop_loss = this_cand + abs(avdiff) * 4
+                    self.stop_loss = this_cand + abs(avdiff) * 2
                     self.take_profit = this_cand - abs(avdiff)
                     self.pos_preconf = False
                     return 3

@@ -41,10 +41,12 @@ class BaseIndicator:
             'x' : [],
             'y' : []
         }
-        self.period = options['on']
+        if 'on' in options:
+            self.period = options['on']
         for key, value in options.items():
             setattr(self, key, value)
         self.is_subplot = False
+        self.multi_y = False
         self.options = options
         self.data = DataFrame(
                 data={
@@ -77,97 +79,175 @@ class SimpleMovingAverage(BaseIndicator):
             self.data_dict['candles'].append(candle)
         self.data = DataFrame(data=self.data_dict)
 
+
 class SampleStandardDeviation(BaseIndicator):
 
-    ### Will be deprecated soon!!!
-    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
-        self.valid_options = ['on', 'period', 'color', 'z', 'name']
-        datapoints = []
-        if not all([key in self.valid_options for key in options.keys()]):
-            raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
-        for i in range(len(candle_cluster)):
-            if i < options['period']:
-                datapoints.append(None)
-                continue
-            period_average = sum([getattr(candle_cluster[j], options['on'])  for j in range(i-options['period'],i)])/options['period']
-            sum_of_diff_squares = sum([(getattr(candle_cluster[j], options['on']) - period_average) ** 2 for j in range(i-options['period'],i)])
-            std = math.sqrt(sum_of_diff_squares/options['period'])
-            datapoint = D(std*options['z']) + getattr(candle_cluster[i], options['on'])
-            datapoints.append(datapoint)
-        return DataFrame(
-            data=
-            {
-                'x' : candle_cluster.history('time'),
-                'y' : datapoints
-            }
-        )
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.indicator_id = 'sample_standard_deviation'
+
+    def add_candle(self, candle):
+        self.is_subplot = True
+        data_size = len(self.candles_dict.values())
+        if data_size < self.period and candle.time not in self.candles_dict:
+            self.data_dict['x'].append(None)
+            self.data_dict['y'].append(None)
+            self.data_dict['candles'].append(None)
+            self.candles_dict[candle.time] = candle
+        elif data_size >= self.period:
+            self.candles_dict[candle.time] = candle
+            self.data_dict['x'].append(candle.time)
+            self.period_avg = sum(
+                    [getattr(list(self.candles_dict.values())[j], self.options['on']) for j in range(
+                        data_size - self.period, data_size
+                    )]
+                ) / self.period
+            period_diff_sum = sum(
+                    [(getattr(list(self.candles_dict.values())[j], self.options['on']) - self.period_avg) ** 2 for j in range(
+                        data_size - self.period, data_size
+                    )]
+                )
+            period_std = decimal.Decimal(math.sqrt(period_diff_sum / self.period))
+            self.data_dict['y'].append(period_std)
+            self.data_dict['candles'].append(candle)
+        self.data = DataFrame(data=self.data_dict)
+
+class BollingerBands(BaseIndicator):
+
+    def __init__(self, std_indicator, **options):
+        super().__init__(**options)
+        self.data_dict['y1'] = []
+        self.data_dict['y2'] = []
+        self.std_indicator = std_indicator
+        self.indicator_id = 'bollinger_bands'
+        self.multi_y = True
+
+    def add_candle(self, candle):
+        self.std_indicator.add_candle(candle)
+        data_size = len(self.candles_dict.values())
+        if data_size < self.period and candle.time not in self.candles_dict:
+            self.data_dict['x'].append(None)
+            self.data_dict['y'].append(None)
+            self.data_dict['y1'].append(None)
+            self.data_dict['y2'].append(None)
+            self.data_dict['candles'].append(None)
+            self.candles_dict[candle.time] = candle
+        elif data_size >= self.period:
+            self.candles_dict[candle.time] = candle
+            self.data_dict['x'].append(candle.time)
+            period_std = self.std_indicator.data.iloc[-1]['y']
+            period_avg = sum(
+                    [getattr(list(self.candles_dict.values())[j], self.options['on']) for j in range(
+                        data_size - self.period, data_size
+                    )]
+                ) / self.period
+            upper_band = period_avg + period_std * 2
+            lower_band = period_avg - period_std * 2
+            self.data_dict['y'].append(upper_band)
+            self.data_dict['y1'].append(period_avg)
+            self.data_dict['y2'].append(lower_band)
+            self.data_dict['candles'].append(candle)
+        self.data = DataFrame(data=self.data_dict)
+
+
+class ZScoreOfPrice(BaseIndicator):
+
+    def __init__(self, std_indicator, **options):
+        super().__init__(options)
+        self.std_indicator = std_indicator
+        self.indicator_id = 'z_score_of_price'
+
+    def add_candle(self, candle):
+        self.std_indicator.add_candle(candle)
+        self.is_subplot = True
+        data_size = len(self.candles_dict.values())
+        if data_size < self.period and candle.time not in self.candles_dict:
+            self.data_dict['x'].append(None)
+            self.data_dict['y'].append(None)
+            self.data_dict['candles'].append(None)
+            self.candles_dict[candle.time] = candle
+        elif data_size >= self.period:
+            self.candles_dict[candle.time] = candle
+            self.data_dict['x'].append(candle.time)
+            period_std = self.std_indicator.data.iloc[-1]['y']
+            z_score = (candle.close - self.std_indicator.period_avg) / period_std
+            self.data_dict['y'].append(z_score)
+            self.data_dict['candles'].append(candle)
+        self.data = DataFrame(data=self.data_dict)
 
 
 class RelativeStrengthIndex(BaseIndicator):
 
-    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
-            """
-            Calculate Relative Strength Index (RSI) for a given period.
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.indicator_id = 'relative_strength_index'
 
-            Parameters:
-            - period: int, Period of the RSI
-            - candle_data: DataFrame, OHLC and time data stored in a pandas DataFrame
-
-            Returns:
-            - rsi_values: Series, RSI values for each corresponding time period
-            """
-
-            # Calculate daily price changes
-            self.is_subplot = True
-            period = options['period']
-            delta = candle_cluster.to_dataframe()['close'].diff()
-
-            # Calculate gain (positive price changes) and loss (negative price changes)
-            gain = delta.where(delta > 0, 0)
-            loss = -delta.where(delta < 0, 0)
-
-            # Calculate average gain and average loss over the specified period
-            avg_gain = gain.rolling(window=period, min_periods=1).mean()
-            avg_loss = loss.rolling(window=period, min_periods=1).mean()
-
-            # Calculate relative strength (RS)
-            rs = avg_gain / avg_loss
-
-            # Calculate RSI
-            rsi = 100 - (100 / (1 + rs))
-            return DataFrame(
-                data=
-                {
-                    'x' : candle_cluster.history('time'),
-                    'y' : rsi
-                }
-            )
-
-class PopulationStandardDeviation(BaseIndicator):
-
-    def ind_algorithm(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
-        self.valid_options = ['on', 'period', 'color', 'z', 'name']
-        datapoints = []
-        if not all([key in self.valid_options for key in options.keys()]):
-            raise IndicatorOptionsError(self, f'Invalid option for indicator. Valid options are:\n{self.valid_options}')
-        population_average = sum(candle_cluster.history(options['on']))/len(candle_cluster)
-        sum_of_diff_squares = sum((getattr(candle, options['on']) - population_average) ** 2 for candle in candle_cluster)
-        std = math.sqrt(sum_of_diff_squares / len(candle_cluster))
-        for candle in candle_cluster:
-            datapoint = D(std*options['z']) + getattr(candle, options['on'])
-            datapoints.append(datapoint)
-        return DataFrame(
-            data=
-            {
-                'x' : candle_cluster.history('time'),
-                'y' : datapoints
-            }
-        )
+    def add_candle(self, candle):
+        self.is_subplot = True
+        data_size = len(self.candles_dict.values())
+        if data_size < self.period and candle.time not in self.candles_dict:
+            self.data_dict['x'].append(None)
+            self.data_dict['y'].append(None)
+            self.data_dict['candles'].append(None)
+            self.candles_dict[candle.time] = candle
+        elif data_size >= self.period:
+            self.candles_dict[candle.time] = candle
+            self.data_dict['x'].append(candle.time)
+            period_avg_gain = sum(
+                    [getattr(list(self.candles_dict.values())[j], self.options['on']) - getattr(list(self.candles_dict.values())[j-1], self.options['on']) for j in range(
+                        data_size - self.period, data_size
+                    ) if getattr(list(self.candles_dict.values())[j], self.options['on']) - getattr(list(self.candles_dict.values())[j-1], self.options['on']) > 0]
+                ) / self.period
+            period_avg_loss = sum(
+                    [getattr(list(self.candles_dict.values())[j], self.options['on']) - getattr(list(self.candles_dict.values())[j-1], self.options['on']) for j in range(
+                        data_size - self.period, data_size
+                    ) if getattr(list(self.candles_dict.values())[j], self.options['on']) - getattr(list(self.candles_dict.values())[j-1], self.options['on']) < 0]
+                ) / self.period
+            period_rs = period_avg_gain / period_avg_loss
+            period_rsi = 100 - (100 / (1 + period_rs))
+            self.data_dict['y'].append(period_rsi)
+            self.data_dict['candles'].append(candle)
+        self.data = DataFrame(data=self.data_dict)
 
 
-### My own
+class DifferenceBetween(BaseIndicator):
+
+    def __init__(self, indicators: list[BaseIndicator], **options):
+        super().__init__(**options)
+        self.indicators = indicators
+        self.indicator_id = 'difference_between'
+        self.period = max([indicator.period for indicator in indicators])
+
+    def add_candle(self, candle):
+        self.is_subplot = True
+        data_size = len(self.candles_dict.values())
+        for indicator in self.indicators:
+            indicator.add_candle(candle)
+        if data_size < self.period and candle.time not in self.candles_dict:
+            self.data_dict['x'].append(None)
+            self.data_dict['y'].append(None)
+            self.data_dict['candles'].append(None)
+            self.candles_dict[candle.time] = candle
+        elif data_size >= self.period:
+            self.candles_dict[candle.time] = candle
+            self.data_dict['x'].append(candle.time)
+            indicator_1 = self.indicators[0].data.iloc[-1]['y']
+            indicator_2 = self.indicators[1].data.iloc[-1]['y']
+            diff = indicator_1 - indicator_2
+            self.data_dict['y'].append(diff)
+            self.data_dict['candles'].append(candle)
+
+        self.data = DataFrame(data=self.data_dict)
+
+# My own
+
 
 class AverageDifference(BaseIndicator):
+
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.indicator_id = 'average_difference'
+
     def add_candle(self, candle):
         self.is_subplot = True
         data_size = len(self.candles_dict.values())
