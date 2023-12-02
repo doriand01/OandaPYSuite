@@ -149,7 +149,6 @@ class MarketSimulator:
         self.speed_factor = speed_factor
         self.candle_cache = {}  # Cache for storing fetched candle data
         self.generate_for = generate_for
-        self.current_candle = self.__get_candle_at_time(window[0], self.current_time)
         self.current_tick = 0
         self.periods = 0
         self.signal = signal
@@ -276,7 +275,8 @@ class Backtester(MarketSimulator):
             generate_for: str = 'M1',
             indicators: list[BaseIndicator] = None,
             signal: BaseSignal = None):
-        super().__init__(window, api_object, speed_factor=speed_factor, ticks_per_second=ticks_per_second)
+        super().__init__(window, api_object, speed_factor=speed_factor, ticks_per_second=ticks_per_second, generate_for=generate_for, indicators=indicators, signal=signal)
+        self.current_candle = self.__get_candle_at_time(window[0], self.current_time)
         self.signal = signal
         self.indicators = indicators
         self.generate_for = generate_for
@@ -286,18 +286,24 @@ class Backtester(MarketSimulator):
         self.start_signal = max([indicator.period for indicator in self.indicators]) + 1
 
     def run(self):
-        for i in range(len(self.window)):
-            current_macro_candle = self.window[i]
-            while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
-                if self.current_candle and self.current_time > self.current_candle.time + timedelta(
-                        seconds=candlex[self.current_candle.gran]):
-                    self.__update_price(self.current_candle, is_close=True)
-                    self.current_candle = self.__get_candle_at_time(current_macro_candle, self.current_time)
-                    self.__update_price(self.current_candle, is_open=True)
-                    print(f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}', end="\r")
-                self.__update_price(self.current_candle)
-                self.current_time += timedelta(seconds=(self.speed_factor / self.tps))
-                sleep_interval = 1 / self.tps
-                sleep(sleep_interval)
-                self.current_tick += 1
-                self.periods = len(list(self.candles_dict.values()))
+        try:
+            for i in range(len(self.window)):
+                current_macro_candle = self.window[i]
+                while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
+                    if self.current_candle and self.current_time > self.current_candle.time + timedelta(
+                            seconds=candlex[self.current_candle.gran]):
+                        self.__update_price(self.current_candle, is_close=True)
+                        self.current_candle = self.__get_candle_at_time(current_macro_candle, self.current_time)
+                        self.__update_price(self.current_candle, is_open=True)
+                        print(
+                            f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}',
+                            end="\r")
+                    self.__update_price(self.current_candle)
+                    self.current_time += timedelta(seconds=(self.speed_factor / self.tps))
+                    sleep_interval = 1 / self.tps
+                    sleep(sleep_interval)
+                    self.current_tick += 1
+                    self.periods = len(list(self.candles_dict.values()))
+        except KeyboardInterrupt:
+            print(f'Exiting simulation at {self.current_time}')
+            print(f'Average trade: {sum(self.trades)/len(self.trades)}')

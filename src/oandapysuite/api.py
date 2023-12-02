@@ -136,18 +136,18 @@ class API:
             response = put(req_url, headers=self.auth_header)
             self.open_trades.remove(trans_id)
 
-    def trade_signal(self, instrument,  signal, cur_price):
-        logging.warn(f'INSTANT SIGNAL: {signal.data.iloc[-1]["y"]}, INSTRUMENT {instrument}')
-        if signal.data.iloc[-1]['y'] == 1 and not self.open_trades :
+    def trade_signal(self, instrument,  signal, candle):
+        cur_price = candle.close
+        if signal == 1 and not self.open_trades:
             print(f'Signal 1 detected, entering trade long @ {cur_price} on {instrument}')
             self.open_trade(instrument, 50000)
-        if signal.data.iloc[-1]['y'] == 2 and not self.open_trades:
+        if signal == 2 and not self.open_trades:
             print(f'Signal 2 detected, entering trade short @ {cur_price} on {instrument}')
             self.open_trade(instrument, -50000)
-        if signal.data.iloc[-1]['y'] == 3 and len(self.open_trades) > 0:
+        if signal == 3 and len(self.open_trades) > 0:
             print(f'Signal 3 detected, exiting long @ {cur_price} on {instrument}')
             self.close_trade(self.open_trades[0])
-        if signal.data.iloc[-1]['y'] == 4 and len(self.open_trades) > 0:
+        if signal == 4 and len(self.open_trades) > 0:
             print(f'Signal 4 detected, exiting short @ {cur_price} on {instrument}')
             self.close_trade(self.open_trades[0])
     def get_order_book(self, instrument):

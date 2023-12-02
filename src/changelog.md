@@ -73,3 +73,10 @@ as optimized as it can get for now. May probably be optimized further in the fut
 - Need to remove magic function from api.add_indicator() that was coded specifically
 for the BollingerBands. Find better way to accomodate graphing multiple y values on the same
 x axis.
+
+## December 2023 ####
+
+### 0.3.1a - 2 December 2023 ###
+- Temporary bug fix in Backtester and CandleCluster classes where DST offset changing
+during the year breaks the `api.get_candles()` and `get_child_candles()` functions. Every
+function that uses/relies on these methods is affected by this bug. 

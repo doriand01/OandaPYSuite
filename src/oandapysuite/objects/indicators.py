@@ -153,7 +153,7 @@ class BollingerBands(BaseIndicator):
 class ZScoreOfPrice(BaseIndicator):
 
     def __init__(self, std_indicator, **options):
-        super().__init__(options)
+        super().__init__(**options)
         self.std_indicator = std_indicator
         self.indicator_id = 'z_score_of_price'
 

@@ -3,7 +3,8 @@ from oandapysuite.exceptions import HighestGranularityException, LowestGranulari
 
 import json
 import decimal
-from datetime import datetime
+from datetime import datetime, timedelta
+from pytz.reference import LocalTimezone
 from time import timezone
 
 from pandas import DataFrame
@@ -22,6 +23,11 @@ class CandleCluster:
     class Candle:
         """Serializes candle data."""
 
+        def __get_dst_offset(self, time: datetime):
+            """Returns the timezone offset from UTC of the date of the candle as a
+            timedelta object."""
+            return LocalTimezone().dst(time)
+
         def __init__(self, candledata, ins, gran):
             global time_format
             self.open = D(candledata['mid']['o'])
@@ -32,7 +38,12 @@ class CandleCluster:
             self.total_displacement = self.high - self.low
             self.complete = True if candledata['complete'] == 'true' else False
             # Subtracts offset of current timezone from UTC time returned by OANDA API to get local time.
-            self.time = datetime.fromtimestamp(datetime.strptime(candledata['time'][:-11], time_format).timestamp() - timezone)
+            # Temporary fix, find a better way to do this.
+            # This will likely be broken if the user is in a timezone that is not in the US, or
+            # if DST begins or ends during the time the user is running the program.
+            candle_dt_obj = datetime.strptime(candledata['time'][:-11], time_format)
+            dst_offset = self.__get_dst_offset(candle_dt_obj)
+            self.time = candle_dt_obj - timedelta(seconds=timezone - dst_offset.seconds)
             self.volume = int(candledata['volume'])
             self.gran = gran
             self.instrument = ins
