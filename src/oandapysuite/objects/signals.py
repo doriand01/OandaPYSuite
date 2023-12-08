@@ -23,7 +23,6 @@ class AvDiffSignal(BaseSignal):
 
     def get_signal(self, candle: CandleCluster.Candle, params: list) -> DataFrame:
         period = params[0].period
-        datapoints = []
         avdiff = params[0].data.iloc[-1]['y']
         sma = params[1].data.iloc[-1]['y']
         std = params[2].data.iloc[-1]['y']
@@ -35,15 +34,13 @@ class AvDiffSignal(BaseSignal):
         z_max = max([val for val in params[3].data['y'].tolist() if val is not None][-period:])
         this_cand = candle.close
         if not self.in_position:
-            if avdiff <= period_min and zscore <= z_min and zscore < -2:
-                self.conf_price = this_cand - avdiff * Decimal(0.7)
+            if avdiff <= period_min and zscore <= z_min and zscore < -3:
                 self.in_position = 1
                 self.entry_price = this_cand
                 self.stop_loss = this_cand - abs(avdiff) * 2
                 self.take_profit = this_cand + abs(avdiff)
                 return 1
-            elif avdiff >= period_max and zscore >= z_max and zscore > 2:
-                self.conf_price = this_cand - avdiff * Decimal(0.7)
+            elif avdiff >= period_max and zscore >= z_max and zscore > 3:
                 self.in_position = 3
                 self.entry_price = this_cand
                 self.stop_loss = this_cand + abs(avdiff) * 2

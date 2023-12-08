@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pytz.reference import LocalTimezone
 from time import timezone
 
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 D = decimal.Decimal
 decimal.getcontext().prec = 6
@@ -81,8 +81,11 @@ class CandleCluster:
             self.instrument = self.candledata['instrument'].replace('/', '_')
             for candle in self.candledata['candles']:
                 self.candles.append(self.Candle(candle, self.instrument, self.gran))
+            self.candles = Series(self.candles)
 
-        else: self.candles = cand_list
+
+        else:
+            self.candles = Series(cand_list)
 
     def has_lower_timeframe(self) -> bool:
         return self.candles[0].has_lower_timeframe()
@@ -102,11 +105,14 @@ class CandleCluster:
         return ind
 
     def __getitem__(self, index):
-        return self.candles[index]
+        if index < 0:
+            return self.candles.get(len(self.candles) + index)
+        return self.candles.get(index)
 
     def __len__(self):
-        return len(self.candles)
+        return self.candles.size
 
+    # URGENT! __add__ needs to be reimplemented after switching from python lists to pandas Series.
     def __add__(self, b):
         if not self.instrument == b.instrument:
             raise ClusterConcatException(self.instrument, b.instrument)
@@ -115,7 +121,6 @@ class CandleCluster:
         # the cluster which is being added to self. If it is, the b is copied into the resultant CandleCluster using
         # `deepcopy`, and the self is appended to it. The resultant CandleCluster is then returned.
         if self[0].time > b[-1].time:
-            result = deepcopy(b)
             for candle in self:
                 result.candles.append(candle)
 
@@ -142,9 +147,7 @@ class CandleCluster:
         data = []
         for prop in properties:
             data.append([getattr(candle, prop) for candle in self.candles])
-        if len(data) == 1:
-            return data[0]
-        return data
+        return Series(data)
 
     def to_dataframe(self):
         """

@@ -8,7 +8,8 @@
 
 ### 0.0.0pre-a rev2 ### 
 - Implemented addition feature on CandlesObject class. Renamed CandlesObject to CandleCluster for clarity
-- Added ability to plot horizontal and vertical lines to `OANDAAPIObject.plot()`. To do so, run `plot(x=x1, style='vline')`. For a vertical line. For a horizontal line, use `'hline'` instead of `'vline'` and `y` instead of `x`.
+- Added ability to plot horizontal and vertical lines to `OANDAAPIObject.plot()`. To do so, run `plot(x=x1, style='vline')`.
+For a vertical line. For a horizontal line, use `'hline'` instead of `'vline'` and `y` instead of `x`.
 
 ### 0.0.0pre-a rev3 ####
 - Added documentation
@@ -20,7 +21,8 @@
 - Implemented Account objects. Account objects have every attribute present in `Account` per the OANDA REST API's documentation.
 - Reimplemented `api.APIObject`'s `get_accounts()` method, this method can now be used to retrieve the account objects
 of every account owned by the given Authorization token.
-- Implemented a standard deviation indicator function `stats.std_indicator`. Period can be specified as with the `moving_average()`, indicator, default period is 10.
+- Implemented a standard deviation indicator function `stats.std_indicator`. Period can be specified as with the 
+`moving_average()`, indicator, default period is 10.
 
 ---
 
@@ -80,3 +82,7 @@ x axis.
 - Temporary bug fix in Backtester and CandleCluster classes where DST offset changing
 during the year breaks the `api.get_candles()` and `get_child_candles()` functions. Every
 function that uses/relies on these methods is affected by this bug. 
+
+### 0.3.2a - 8 December 2023 ###
+- Begin moving away from Python's lists and dict structures in favore of 
+Pandas DataFrames. Change `self.candles` in `CandleCluster` to from a list to a Series.
