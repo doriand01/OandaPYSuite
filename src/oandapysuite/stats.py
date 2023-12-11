@@ -25,37 +25,10 @@ candlex = {
     'H12'  : hrx * 12,
     'D'    : dayx,
     'W'    : weex,
-    'M'    : dayx * 30 ## problematic
+    'M'    : dayx * 30 # problematic
 }
 
 
-
-def moving_average(data, period=10):
-    mas = []
-    for i in range(period):
-        mas.append(None)
-    for j in range(len(data)):
-        if j < period: continue
-        total = sum([data[k] for k in range(j-period, j)])
-        mas.append(total/period)
-    return mas
-
-def standard_deviation(values):
-    mean = sum(values)/len(values)
-    ss = 0
-    for i in values:
-        ss += (i - mean) ** D(2)
-    return ((ss/len(values)) ** D(0.5),mean)
-
-def std_indicator(data, period=10):
-    stds = []
-    for i in range(period):
-        stds.append(None)
-    for j in range(len(data)):
-        if j < period: continue
-        std  = standard_deviation([data[k] for k in range(j-period, j)])
-        stds.append(std)
-    return stds
 
 
 

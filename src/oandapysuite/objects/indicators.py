@@ -35,16 +35,20 @@ class BaseIndicator:
             options: dict(), <--- Parameters for your indicator. eg. period, etc...
             )
         """
-        self.candles_dict = {}
+        self.candles_dict = DataFrame(data={
+            'time' : [],
+            'candles' : []
+        })
         self.data_dict = {
             'candles' : [],
             'x' : [],
             'y' : []
         }
         if 'on' in options:
-            self.period = options['on']
+            self.datapoint = options['on']
         for key, value in options.items():
             setattr(self, key, value)
+        self.period = options['period']
         self.is_subplot = False
         self.multi_y = False
         self.options = options
@@ -59,25 +63,14 @@ class BaseIndicator:
 
 class SimpleMovingAverage(BaseIndicator):
 
-    def add_candle(self, candle):
-        data_size = len(self.candles_dict.values())
-        if data_size < self.period and candle.time not in self.candles_dict:
-            self.data_dict['x'].append(None)
-            self.data_dict['y'].append(None)
-            self.data_dict['candles'].append(None)
-            self.candles_dict[candle.time] = candle
-        elif data_size >= self.period:
-            self.candles_dict[candle.time] = candle
-            self.data_dict['x'].append(candle.time)
-            period_sum = sum(
-                    [getattr(list(self.candles_dict.values())[j], self.options['on']) for j in range(
-                        data_size - self.period, data_size
-                    )]
-                )
-            period_avg = period_sum / self.period
-            self.data_dict['y'].append(period_avg)
-            self.data_dict['candles'].append(candle)
-        self.data = DataFrame(data=self.data_dict)
+    def add_candle(self, candle_cluster):
+        datapoints = candle_cluster.history(self.datapoint)
+        simple_moving_average = datapoints.rolling(self.period).mean()
+        self.data = DataFrame(data={
+            'candles' : candle_cluster.candles,
+            'x'       : candle_cluster.history('time'),
+            'y'       : simple_moving_average
+        })
 
 
 class SampleStandardDeviation(BaseIndicator):
@@ -86,31 +79,15 @@ class SampleStandardDeviation(BaseIndicator):
         super().__init__(**options)
         self.indicator_id = 'sample_standard_deviation'
 
-    def add_candle(self, candle):
+    def add_candle(self, candle_cluster):
         self.is_subplot = True
-        data_size = len(self.candles_dict.values())
-        if data_size < self.period and candle.time not in self.candles_dict:
-            self.data_dict['x'].append(None)
-            self.data_dict['y'].append(None)
-            self.data_dict['candles'].append(None)
-            self.candles_dict[candle.time] = candle
-        elif data_size >= self.period:
-            self.candles_dict[candle.time] = candle
-            self.data_dict['x'].append(candle.time)
-            self.period_avg = sum(
-                    [getattr(list(self.candles_dict.values())[j], self.options['on']) for j in range(
-                        data_size - self.period, data_size
-                    )]
-                ) / self.period
-            period_diff_sum = sum(
-                    [(getattr(list(self.candles_dict.values())[j], self.options['on']) - self.period_avg) ** 2 for j in range(
-                        data_size - self.period, data_size
-                    )]
-                )
-            period_std = decimal.Decimal(math.sqrt(period_diff_sum / self.period))
-            self.data_dict['y'].append(period_std)
-            self.data_dict['candles'].append(candle)
-        self.data = DataFrame(data=self.data_dict)
+        datapoints = candle_cluster.history(self.datapoint)
+        standard_deviation = datapoints.rolling(self.period).std()
+        self.data = DataFrame(data={
+            'candles' : candle_cluster.candles,
+            'x'       : candle_cluster.history('time'),
+            'y'       : standard_deviation
+        })
 
 class BollingerBands(BaseIndicator):
 
@@ -152,28 +129,25 @@ class BollingerBands(BaseIndicator):
 
 class ZScoreOfPrice(BaseIndicator):
 
-    def __init__(self, std_indicator, **options):
+    def __init__(self, **options):
         super().__init__(**options)
-        self.std_indicator = std_indicator
         self.indicator_id = 'z_score_of_price'
 
-    def add_candle(self, candle):
-        self.std_indicator.add_candle(candle)
+    @staticmethod
+    def __calculate_zscore(rolling_window):
+        zscore = (rolling_window.iloc[-1] - rolling_window.mean()) / rolling_window.std()
+        return zscore
+
+    def add_candle(self, candle_cluster):
         self.is_subplot = True
-        data_size = len(self.candles_dict.values())
-        if data_size < self.period and candle.time not in self.candles_dict:
-            self.data_dict['x'].append(None)
-            self.data_dict['y'].append(None)
-            self.data_dict['candles'].append(None)
-            self.candles_dict[candle.time] = candle
-        elif data_size >= self.period:
-            self.candles_dict[candle.time] = candle
-            self.data_dict['x'].append(candle.time)
-            period_std = self.std_indicator.data.iloc[-1]['y']
-            z_score = (candle.close - self.std_indicator.period_avg) / period_std
-            self.data_dict['y'].append(z_score)
-            self.data_dict['candles'].append(candle)
-        self.data = DataFrame(data=self.data_dict)
+        datapoints = candle_cluster.history(self.datapoint)
+        window = datapoints.rolling(self.period)
+        zscore = window.apply(self.__calculate_zscore)
+        self.data = DataFrame(data={
+            'candles' : candle_cluster.candles,
+            'x'       : candle_cluster.history('time'),
+            'y'       : zscore
+        })
 
 
 class RelativeStrengthIndex(BaseIndicator):
@@ -248,24 +222,18 @@ class AverageDifference(BaseIndicator):
         super().__init__(**options)
         self.indicator_id = 'average_difference'
 
-    def add_candle(self, candle):
+    @staticmethod
+    def __calculate_average_difference(rolling_window):
+        differences = rolling_window.sub(rolling_window.iloc[-1])
+        avg_diff = differences.mean()
+        return avg_diff
+
+    def add_candle(self, candle_cluster):
         self.is_subplot = True
-        data_size = len(self.candles_dict.values())
-        if data_size < self.period and candle.time not in self.candles_dict:
-            self.data_dict['x'].append(None)
-            self.data_dict['y'].append(None)
-            self.data_dict['candles'].append(None)
-            self.candles_dict[candle.time] = candle
-        elif data_size >= self.period:
-            self.candles_dict[candle.time] = candle
-            self.data_dict['x'].append(candle.time)
-            cand_vals = list(self.candles_dict.values())
-            period_diff_sum = sum(
-                    [getattr(candle, self.options['on']) - getattr(cand_vals[j], self.options['on']) for j in range(
-                        data_size - self.period, data_size
-                    )]
-                )
-            period_avg_diff = period_diff_sum / self.period
-            self.data_dict['y'].append(period_avg_diff)
-            self.data_dict['candles'].append(candle)
-        self.data = DataFrame(data=self.data_dict)
+        window = candle_cluster.history(self.datapoint).rolling(self.period, min_periods=self.period)
+        average_differences = window.apply(self.__calculate_average_difference)
+        self.data = DataFrame(data={
+            'candles' : candle_cluster.candles,
+            'x'       : candle_cluster.history('time'),
+            'y'       : average_differences
+        })

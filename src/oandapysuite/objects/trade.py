@@ -204,7 +204,7 @@ class Backtester(MarketSimulator):
         self.trade_type = 0
 
     def __check_signal(self):
-        sig_val = self.signal.get_signal(self.current_candle, self.indicators)
+        sig_val = self.signal.get_signal(self.current_candle)
         if self.trade_type == 0:
             if sig_val == 1:
                 print(f'''Entering long @ {self.current_price}, time: {self.current_time} '''
@@ -244,7 +244,7 @@ class Backtester(MarketSimulator):
         pass
         if candle.gran == self.generate_for:
             for indicator in self.indicators:
-                indicator.add_candle(candle)
+                indicator.add_candle(CandleCluster(cand_list=list(self.candles_dict.values())))
             adjusted_candle = deepcopy(candle)
             adjusted_candle.close = self.current_price
             self.candles_dict[candle.time] = adjusted_candle

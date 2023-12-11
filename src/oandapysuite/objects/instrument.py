@@ -8,6 +8,7 @@ from pytz.reference import LocalTimezone
 from time import timezone
 
 from pandas import DataFrame, Series
+from numpy import float64
 
 D = decimal.Decimal
 decimal.getcontext().prec = 6
@@ -91,7 +92,7 @@ class CandleCluster:
         return self.candles[0].has_lower_timeframe()
 
     def __str__(self):
-        return f'<{len(self.candles)} candles, time: {self.candles[0].time} thru {self.candles[-1].time}>'
+        return f'<{len(self.candles)} candles, time: {self.candles[0].time} thru {self.candles[self.candles.size-1].time}>'
 
     def __repr__(self):
         return self.__str__()
@@ -146,7 +147,10 @@ class CandleCluster:
         """
         data = []
         for prop in properties:
-            data.append([getattr(candle, prop) for candle in self.candles])
+            data = data + [getattr(candle, prop) for candle in self.candles]
+            for i in range(len(data)):
+                if type(data[i]) == D:
+                    data[i] = float64(data[i])
         return Series(data)
 
     def to_dataframe(self):

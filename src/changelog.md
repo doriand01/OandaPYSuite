@@ -84,5 +84,12 @@ during the year breaks the `api.get_candles()` and `get_child_candles()` functio
 function that uses/relies on these methods is affected by this bug. 
 
 ### 0.3.2a - 8 December 2023 ###
-- Begin moving away from Python's lists and dict structures in favore of 
+- Begin moving away from Python's lists and dict structures in favor of 
 Pandas DataFrames. Change `self.candles` in `CandleCluster` to from a list to a Series.
+
+### 0.3.3a - 11 December 2023 ###
+- Remove unused code in oandapysuite.stats module. Might deprecate this module in the future.
+- Refactored SimpleMovingAverage, SampleStandardDeviation, ZScoreOfPrice, and AverageDifference indicators
+to utilize pandas Series.rolling calculations. This makes calculating indicators much faster. Will refactor
+other indicators in the future.
+- Refactored Backtester and signals to work with aforementioned changes to indicators.
