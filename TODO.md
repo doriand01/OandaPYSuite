@@ -6,6 +6,8 @@
 ### In progress
 
 - **040-001-008** Deprecate stats.py and refactor references to it. (Priority: low)
+- **042-001-013** Add all ta indicators to the API. (Priority: high)
+
 
 ### Done
 - **035-001-001** Refactor `add_candle()` method of `BaseIndicator` classes to `update()` (Done in 0.3.5a)
@@ -14,6 +16,7 @@
 - **041-002-010** Clean up render_chart() method in API (Done in 0.4.1a)
 - **041-003-011** Refactor initialize_chart() method in API to provide for custom options
 when initializing candlestick charts. (Done in 0.4.1a)
+- **042-002-014** Make indicators.py a package instead of a module. (Done in 0.4.2a)
 
 ### Planned
 
@@ -23,7 +26,7 @@ when initializing candlestick charts. (Done in 0.4.1a)
 - **035-003-003** Refactor test cases to reflect 035-001-001 and 035-002-002.
 - **035-006-006** Patch bug 003. Will get to this later (Abandoned in 0.4.0a)
 - **035-007-007** Patch bug 004. Will get to this later (Abandoned in 0.4.0a)
-- - **041-001-009** Clean up add_indicator() method in API. Couldn't figure out how lol. I'll probably do it later.
+- **041-001-009** Clean up add_indicator() method in API. Couldn't figure out how lol. I'll probably do it later.
 (Abandoned in 0.4.1a)
 
 ## Unpatched Bugs

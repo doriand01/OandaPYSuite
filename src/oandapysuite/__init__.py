@@ -5,8 +5,8 @@ from oandapysuite import stats
 from oandapysuite import endpoints
 from oandapysuite import objects
 
-SMA = objects.indicators.SimpleMovingAverage
-SSTD = objects.indicators.SampleStandardDeviation
+SMA = objects.indicators.trend.SimpleMovingAverage
+SSTD = objects.indicators.volatility.SampleStandardDeviation
 
 if not settings.AUTH_FILEPATH:
     print("""No file containing the API Authorization token has been specified. \n

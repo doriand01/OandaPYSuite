@@ -12,7 +12,7 @@ def main():
 
     candles = api.get_candles('AUD_USD', 'M1', count=5000)
     print(candles.to_dataframe())
-    boll_bands = opy.objects.indicators.BollingerBands(on='close', std=2, period=60, color='purple', name='bollinger bands')
+    boll_bands = opy.objects.indicators.BollingerBands(period=60, color='purple', name='bollinger bands')
     boll_bands.update(candles)
     api.initialize_chart(candles, type='ohlc')
     api.add_indicator(boll_bands)

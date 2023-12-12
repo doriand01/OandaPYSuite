@@ -5,19 +5,23 @@
 
 ## December 2023 ####
 
-### 0.4.1a - 12 December 2023 ###
+### 0.4.2a - 12 December 2023 ###
+- Refactored indicators.py from a module to a package.
+- Added KeltnerChannel, AverageTrueRange, DonchianChannel, and UlcerIndex indicators, in accordance with
+TD-42.1.13
+### 0.4.1a ###
 - Reimplemented BollingerBands indicator. First indicator to use pandas ta library. Will begin
 refactoring other indicators to use pandas ta library in future releases.
-- TD-41210: Refactored render_chart(), removed old `live` functionality.
-- TD-41311: Added options for OHLC or Candlestick chart when initializing chart.
+- TD-41.2.10: Refactored render_chart(), removed old `live` functionality.
+- TD-41.3.11: Added options for OHLC or Candlestick chart when initializing chart.
 
 ### 0.4.0a ###
-- TD-3544: Fixed bug in Backtester/MarketSimulator where the market would freeze at 17:00 on Fridays.
+- TD-35.4.4: Fixed bug in Backtester/MarketSimulator where the market would freeze at 17:00 on Fridays.
 due to the market closing.
 
 ### 0.3.5a ###
 - Add more test coverage.
-- Finished td-3511: Refactor `add_candle()` method of `BaseIndicator` classes to `update()`
+- Finished TD-35.1.1: Refactor `add_candle()` method of `BaseIndicator` classes to `update()`
 
 ### 0.3.4a ###
 - Add test coverage for the following methods: API(), API().load_accounts, 

@@ -240,9 +240,9 @@ class TestAPI(unittest.TestCase):
         # Create a CandleCluster object
         candles = api_object.get_candles('AUD_USD', 'M1', 1000)
 
-        sma = oandapysuite.objects.indicators.SimpleMovingAverage(on='close', period=50, color='purple', name='sma 100')
-        stdforprice = oandapysuite.objects.indicators.SampleStandardDeviation(on='close', period=50, color='orange', name='std 60')
-        zscore = oandapysuite.objects.indicators.ZScoreOfPrice(on='close', period=50, color='black', name='zscore')
+        sma = oandapysuite.objects.indicators.trend.SimpleMovingAverage(on='close', period=50, color='purple', name='sma 100')
+        stdforprice = oandapysuite.objects.indicators.volatility.SampleStandardDeviation(on='close', period=50, color='orange', name='std 60')
+        zscore = oandapysuite.objects.indicators.volatility.ZScoreOfPrice(on='close', period=50, color='black', name='zscore')
 
         # Assert that the indicators do not have data before data has been loaded
         self.assertTrue(sma.data.empty)
