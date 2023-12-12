@@ -5,6 +5,8 @@
 
 ## December 2023 ####
 
+### 0.4.0a - Unreleased ###
+
 ### 0.3.5a - 12 December 2023 ###
 - Add more test coverage.
 - Finished td-3511: Refactor `add_candle()` method of `BaseIndicator` classes to `update()`

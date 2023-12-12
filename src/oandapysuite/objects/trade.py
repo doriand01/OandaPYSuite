@@ -161,7 +161,20 @@ class MarketSimulator:
         """
         return CandleCluster(cand_list=list(self.candles_dict.values()))
 
-    def __do_tick(self):
+    def _market_is_open(self):
+        weekday = self.current_time.weekday()
+        hour = self.current_time.hour
+        if weekday >= 4:
+            if weekday == 6 and hour >= 17:
+                return True
+            elif weekday == 4 and hour <= 17:
+                return True
+            return False
+        return True
+
+
+
+    def _do_tick(self, current_macro_candle):
         # If the current time is greater than the current candle's closing (meaning that the current candle has closed)
         # the next candle is fetched using the __get_candle_at_time() method.
         next_candle_time = self.current_candle.time + timedelta(seconds=candlex[self.current_candle.gran])
@@ -169,11 +182,14 @@ class MarketSimulator:
             self.__update_price(self.current_candle, is_close=True)
             self.current_candle = self.__get_candle_at_time(current_macro_candle, self.current_time)
             self.__update_price(self.current_candle, is_open=True)
+            print(
+                f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}',
+                end="\r")
         self.__update_price(self.current_candle)
-        print(
-            f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}',
-            end="\r")
-        self.current_time += timedelta(seconds=(self.speed_factor / self.tps))
+        if self._market_is_open():
+            self.current_time += timedelta(seconds=(self.speed_factor / self.tps))
+        else:
+            self.current_time += timedelta(days=2)
         sleep_interval = 1 / self.tps
         sleep(sleep_interval)
         self.current_tick += 1
@@ -195,8 +211,7 @@ class MarketSimulator:
             while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
                 if self.paused:
                     continue
-                self.__do_tick()
-
+                self._do_tick(current_macro_candle)
 
 
 class Backtester(MarketSimulator):
@@ -291,25 +306,17 @@ class Backtester(MarketSimulator):
         self.trades = []
         self.start_signal = max([indicator.period for indicator in self.indicators]) + 1
 
+    def _do_tick(self, current_macro_candle):
+        super()._do_tick(current_macro_candle)
+
     def run(self):
         try:
             for i in range(len(self.window)):
                 current_macro_candle = self.window[i]
                 while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
-                    if self.current_candle and self.current_time > self.current_candle.time + timedelta(
-                            seconds=candlex[self.current_candle.gran]):
-                        self.__update_price(self.current_candle, is_close=True)
-                        self.current_candle = self.__get_candle_at_time(current_macro_candle, self.current_time)
-                        self.__update_price(self.current_candle, is_open=True)
-                        print(
-                            f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}',
-                            end="\r")
-                    self.__update_price(self.current_candle)
-                    self.current_time += timedelta(seconds=(self.speed_factor / self.tps))
-                    sleep_interval = 1 / self.tps
-                    sleep(sleep_interval)
-                    self.current_tick += 1
-                    self.periods = len(list(self.candles_dict.values()))
+                    if self.paused:
+                        continue
+                    self._do_tick(current_macro_candle)
         except KeyboardInterrupt:
             print(f'Exiting simulation at {self.current_time}')
             print(f'Average trade: {sum(self.trades)/len(self.trades)}')
