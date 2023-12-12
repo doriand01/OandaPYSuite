@@ -93,3 +93,9 @@ Pandas DataFrames. Change `self.candles` in `CandleCluster` to from a list to a 
 to utilize pandas Series.rolling calculations. This makes calculating indicators much faster. Will refactor
 other indicators in the future.
 - Refactored Backtester and signals to work with aforementioned changes to indicators.
+
+### 0.3.4a - 12 December 2023 ###
+- Add test coverage for the following methods: API(), API().load_accounts, 
+API().select_account oandapysuite.api.API.get_candles(), oandapysuite.api.API.get_child_candles()
+- Add bug tracker file
+- Remove unused code/magic modules. Will reimplement some of them as tests in the future.

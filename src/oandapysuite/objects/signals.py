@@ -36,13 +36,13 @@ class AvDiffSignal(BaseSignal):
         z_period_max = rolling_zscore.max().iloc[ind]
         this_cand = candle.close
         if not self.in_position:
-            if avdiff <= avdiff_period_min and zscore >= z_period_max:
+            if avdiff <= avdiff_period_min and zscore >= z_period_max and zscore > 2.5:
                 self.in_position = 1
                 self.entry_price = this_cand
                 self.stop_loss = this_cand - Decimal(abs(avdiff)) * 2
                 self.take_profit = this_cand + Decimal(abs(avdiff))
                 return 1
-            elif avdiff >= avdiff_period_max and zscore <= z_period_min:
+            elif avdiff >= avdiff_period_max and zscore <= z_period_min and zscore > 2.5:
                 self.in_position = 3
                 self.entry_price = this_cand
                 self.stop_loss = this_cand + Decimal(abs(avdiff)) * 2

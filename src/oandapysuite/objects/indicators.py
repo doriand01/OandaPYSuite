@@ -26,7 +26,7 @@ class BaseIndicator:
     """
 
     def add_candle(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
-        return None
+        return DataFrame(data={})
 
     def __init__(self, **options):
         """
@@ -148,40 +148,6 @@ class ZScoreOfPrice(BaseIndicator):
             'x'       : candle_cluster.history('time'),
             'y'       : zscore
         })
-
-
-class RelativeStrengthIndex(BaseIndicator):
-
-    def __init__(self, **options):
-        super().__init__(**options)
-        self.indicator_id = 'relative_strength_index'
-
-    def add_candle(self, candle):
-        self.is_subplot = True
-        data_size = len(self.candles_dict.values())
-        if data_size < self.period and candle.time not in self.candles_dict:
-            self.data_dict['x'].append(None)
-            self.data_dict['y'].append(None)
-            self.data_dict['candles'].append(None)
-            self.candles_dict[candle.time] = candle
-        elif data_size >= self.period:
-            self.candles_dict[candle.time] = candle
-            self.data_dict['x'].append(candle.time)
-            period_avg_gain = sum(
-                    [getattr(list(self.candles_dict.values())[j], self.options['on']) - getattr(list(self.candles_dict.values())[j-1], self.options['on']) for j in range(
-                        data_size - self.period, data_size
-                    ) if getattr(list(self.candles_dict.values())[j], self.options['on']) - getattr(list(self.candles_dict.values())[j-1], self.options['on']) > 0]
-                ) / self.period
-            period_avg_loss = sum(
-                    [getattr(list(self.candles_dict.values())[j], self.options['on']) - getattr(list(self.candles_dict.values())[j-1], self.options['on']) for j in range(
-                        data_size - self.period, data_size
-                    ) if getattr(list(self.candles_dict.values())[j], self.options['on']) - getattr(list(self.candles_dict.values())[j-1], self.options['on']) < 0]
-                ) / self.period
-            period_rs = period_avg_gain / period_avg_loss
-            period_rsi = 100 - (100 / (1 + period_rs))
-            self.data_dict['y'].append(period_rsi)
-            self.data_dict['candles'].append(candle)
-        self.data = DataFrame(data=self.data_dict)
 
 
 class DifferenceBetween(BaseIndicator):
