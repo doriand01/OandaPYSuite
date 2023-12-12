@@ -3,4 +3,5 @@ regex
 numpy
 plotly
 pandas
+ta
 ipywidgets>=7.0.0

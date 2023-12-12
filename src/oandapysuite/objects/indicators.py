@@ -6,6 +6,7 @@ import decimal
 
 import numpy as np
 from pandas import DataFrame, Series
+from ta import volatility
 
 
 
@@ -42,22 +43,13 @@ class BaseIndicator:
             options: dict(), <--- Parameters for your indicator. eg. period, etc...
             )
         """
-        self.candles_dict = DataFrame(data={
-            'time' : [],
-            'candles' : []
-        })
-        self.data_dict = {
-            'candles' : [],
-            'x' : [],
-            'y' : []
-        }
+        pass
         if 'on' in options:
             self.datapoint = options['on']
         for key, value in options.items():
             setattr(self, key, value)
-        self.period = options['period']
         self.is_subplot = False
-        self.multi_y = False
+        self.y_count = 1
         self.options = options
         self.data = DataFrame(
                 data={
@@ -96,18 +88,23 @@ class SampleStandardDeviation(BaseIndicator):
             'y'       : standard_deviation
         })
 
+
 class BollingerBands(BaseIndicator):
 
-    def __init__(self, std_indicator, **options):
+    def __init__(self, **options):
         super().__init__(**options)
-        self.data_dict['y1'] = []
-        self.data_dict['y2'] = []
-        self.std_indicator = std_indicator
-        self.indicator_id = 'bollinger_bands'
-        self.multi_y = True
+        self.y_count = 3
 
     def update(self, candle_cluster):
-        self.data = DataFrame(data=self.data_dict)
+        datapoints = candle_cluster.history(self.datapoint)
+        boll_bands = volatility.BollingerBands(close=datapoints, window=self.period, window_dev=self.std)
+        self.data = DataFrame(data={
+            'candles' : candle_cluster.candles,
+            'x'       : candle_cluster.history('time'),
+            'y1'      : boll_bands.bollinger_lband(),
+            'y2'      : boll_bands.bollinger_hband(),
+            'y3'      : boll_bands.bollinger_mavg(),
+        })
 
 
 class ZScoreOfPrice(BaseIndicator):

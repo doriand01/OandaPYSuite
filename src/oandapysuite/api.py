@@ -163,38 +163,28 @@ class API:
         end = int(candle.time.timestamp()) + candlex[candle.gran]
         return self.get_candles(candle.instrument, gran, _from=UnixTime(start), to=UnixTime(end))
 
-    def initialize_chart(self, candle_data: CandleCluster, live=False):
+    def initialize_chart(self, candle_data: CandleCluster, type='candlestick'):
         cluster_df = candle_data.to_dataframe()
-        if not live:
-            self.fig = plot.Figure(
-                data=[
-                        plot.Candlestick(
+        if type == 'candlestick':
+            data_trace = plot.Candlestick(
                             x=cluster_df['time'],
                             open=cluster_df['open'],
                             high=cluster_df['high'],
                             low=cluster_df['low'],
-                            close=cluster_df['close'],
-
-
-                        )],
-                layout={'yaxis': {'fixedrange': False},
-                        'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
-                }
-            )
-        if live:
-            self.fig = plot.FigureWidget(data=[
-                    plot.Candlestick(
-                        x=cluster_df['time'],
-                        open=cluster_df['open'].astype(float),
-                        high=cluster_df['high'].astype(float),
-                        low=cluster_df['low'].astype(float),
-                        close=cluster_df['close'].astype(float),
-
-                    )],
-                layout={'yaxis': {'fixedrange': False},
-                        'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
-                        }
-            )
+                            close=cluster_df['close'])
+        elif type == 'ohlc':
+            data_trace = plot.Ohlc(
+                            x=cluster_df['time'],
+                            open=cluster_df['open'],
+                            high=cluster_df['high'],
+                            low=cluster_df['low'],
+                            close=cluster_df['close'])
+        self.fig = plot.Figure(
+            data=[data_trace],
+            layout={'yaxis': {'fixedrange': False},
+                    'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
+            }
+        )
 
     def add_indicator(self, indicator: BaseIndicator):
         if indicator.is_subplot:
@@ -211,32 +201,17 @@ class API:
                 row=len(old_fig.data)+1,
                 col=1)
         else:
-            if indicator.multi_y:
-                self.fig.add_trace(
-                    plot.Scatter(
-                        name=indicator.name,
-                        x = indicator.data['x'],
-                        y = indicator.data['y'],
-                        mode='lines',
-                        line=plot.scatter.Line(color=indicator.color)),
-                )
-                self.fig.add_trace(
-                    plot.Scatter(
-                        name=indicator.name,
-                        x = indicator.data['x'],
-                        y = indicator.data['y1'],
-                        mode='lines',
-                        line=plot.scatter.Line(color=indicator.color)),
-                )
-                self.fig.add_trace(
-                    plot.Scatter(
-                        name=indicator.name,
-                        x = indicator.data['x'],
-                        y = indicator.data['y2'],
-                        mode='lines',
-                        line=plot.scatter.Line(color=indicator.color)),
-                )
-            else:
+            if indicator.y_count > 1:
+                for i in range(indicator.y_count):
+                    self.fig.add_trace(
+                        plot.Scatter(
+                            name=indicator.name,
+                            x = indicator.data['x'],
+                            y = indicator.data[f'y{i+1}'],
+                            mode='lines',
+                            line=plot.scatter.Line(color=indicator.color)),
+                    )
+            elif indicator.y_count == 1:
                 self.fig.add_trace(
                     plot.Scatter(
                         name=indicator.name,
@@ -247,32 +222,8 @@ class API:
                 )
 
     def render_chart(self, live=False, data_df=None):
-        if not live:
-            self.fig.update_layout(xaxis_rangeslider_visible=False)
-            self.fig.show()
-        else:
-            self.fig.for_each_trace(lambda trace: trace.update(visible=False))
-            self.fig.add_trace(
-                    plot.Candlestick(
-                        x=data_df['time'],
-                        open=data_df['open'].astype(float),
-                        high=data_df['high'].astype(float),
-                        low=data_df['low'].astype(float),
-                        close=data_df['close'].astype(float),
-
-                    ))
-
-    def render_live_chart(self, interval, instrument, granularity, count):
+        self.fig.update_layout(xaxis_rangeslider_visible=False)
         self.fig.show()
-        while True:
-            cluster_df = self.get_candles(instrument, granularity,count=count).to_dataframe()
-            print(cluster_df['close'].iloc[-1])
-            self.fig.data[0].x = cluster_df['time']
-            self.fig.data[0].open = cluster_df['open']
-            self.fig.data[0].high = cluster_df['high']
-            self.fig.data[0].low = cluster_df['low']
-            self.fig.data[0].close = cluster_df['close']
-            sleep(interval)
 
     def __init__(self):
         self.auth = str(open(AUTH_FILEPATH, 'r').read())

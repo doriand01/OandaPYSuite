@@ -5,7 +5,13 @@
 
 ## December 2023 ####
 
-### 0.4.0a - 12 December 2023 ###
+### 0.4.1a - 12 December 2023 ###
+- Reimplemented BollingerBands indicator. First indicator to use pandas ta library. Will begin
+refactoring other indicators to use pandas ta library in future releases.
+- TD-41210: Refactored render_chart(), removed old `live` functionality.
+- TD-41311: Added options for OHLC or Candlestick chart when initializing chart.
+
+### 0.4.0a ###
 - TD-3544: Fixed bug in Backtester/MarketSimulator where the market would freeze at 17:00 on Fridays.
 due to the market closing.
 
