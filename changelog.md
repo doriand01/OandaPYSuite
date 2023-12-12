@@ -5,11 +5,11 @@
 
 ## December 2023 ####
 
-### 0.4.0a - Unreleased ###
+### 0.4.0a - 12 December 2023 ###
 - TD-3544: Fixed bug in Backtester/MarketSimulator where the market would freeze at 17:00 on Fridays.
 due to the market closing.
 
-### 0.3.5a - 12 December 2023 ###
+### 0.3.5a ###
 - Add more test coverage.
 - Finished td-3511: Refactor `add_candle()` method of `BaseIndicator` classes to `update()`
 
