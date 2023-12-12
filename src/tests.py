@@ -1,6 +1,7 @@
 import oandapysuite
 import unittest
-from inspect import currentframe
+from datetime import datetime
+from numpy import dtype
 
 ### Test API functionality
 
@@ -214,6 +215,54 @@ class TestAPI(unittest.TestCase):
 
         # Assert that the API object has a selected_account after an account has been selected
         self.assertIsNotNone(api_object.selected_account)
+
+    def test_unix_time_objects(self):
+
+        # Create UnixTime objects for different times
+        ut1 = oandapysuite.objects.datatypes.UnixTime("2023-12-01")
+        ut2 = oandapysuite.objects.datatypes.UnixTime("2023-12-01 00:00")
+        ut3 = oandapysuite.objects.datatypes.UnixTime("2023-12-01 18:00")
+        ut5 = oandapysuite.objects.datatypes.UnixTime("2005-01-01 06:00")
+        ut6 = oandapysuite.objects.datatypes.UnixTime("1970-01-02 00:00")
+
+        # Assert that the UnixTime objects have the correct timestamp
+        self.assertEqual(ut1.timestamp, 1701406800)
+        self.assertEqual(ut2.timestamp, 1701406800)
+        self.assertEqual(ut3.timestamp, 1701471600)
+        self.assertEqual(ut5.timestamp, 1104555600)
+        self.assertEqual(ut6.timestamp, 104400)
+
+    def test_indicators(self):
+
+        # Create an API object
+        api_object = oandapysuite.api.API()
+
+        # Create a CandleCluster object
+        candles = api_object.get_candles('AUD_USD', 'M1', 1000)
+
+        sma = oandapysuite.objects.indicators.SimpleMovingAverage(on='close', period=50, color='purple', name='sma 100')
+        stdforprice = oandapysuite.objects.indicators.SampleStandardDeviation(on='close', period=50, color='orange', name='std 60')
+        zscore = oandapysuite.objects.indicators.ZScoreOfPrice(on='close', period=50, color='black', name='zscore')
+
+        # Assert that the indicators do not have data before data has been loaded
+        self.assertTrue(sma.data.empty)
+        self.assertTrue(stdforprice.data.empty)
+        self.assertTrue(zscore.data.empty)
+
+        # Load data into the indicators
+        sma.update(candles)
+        stdforprice.update(candles)
+        zscore.update(candles)
+        indicators = [sma, stdforprice, zscore]
+
+        # Assert that the indicators have data after data has been loaded and that the data types are correct
+        for indicator in indicators:
+            for row in indicator.data.iterrows():
+                self.assertIsInstance(row[1]['y'], float)
+                self.assertIsInstance(row[1]['x'], datetime)
+                self.assertIsInstance(row[1]['candles'], oandapysuite.objects.instrument.CandleCluster.Candle)
+
+
 
 
 

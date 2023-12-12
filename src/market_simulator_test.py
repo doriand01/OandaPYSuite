@@ -15,3 +15,6 @@ def main():
     sim = oandapysuite.objects.trade.Backtester(c, api, speed_factor=3000, ticks_per_second=700, generate_for='M1', indicators=[avdiff, sma, zscore], signal=signal)
     sim.run()
     print(sim.trades)
+
+if __name__ == '__main__':
+    main()

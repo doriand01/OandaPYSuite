@@ -25,8 +25,15 @@ class BaseIndicator:
     dataframe with at least two columns, one for the x-axis (time) for each data point, and the others with your data.
     """
 
-    def add_candle(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
-        return DataFrame(data={})
+    def update(self, candle_cluster: CandleCluster, options: dict) -> DataFrame:
+        """
+        Provide your own implementation of this function to calculate your indicator.
+        self.data must be set to the new data with the following shape:
+        A pandas dataframe with two columns (x, y) and the same number of rows as the number of candles in the
+        candle_cluster object. The x column must contain the time of each candle, and the y column must contain
+        the value of your indicator for each candle.
+        """
+        self.data = DataFrame(data={})
 
     def __init__(self, **options):
         """
@@ -63,7 +70,7 @@ class BaseIndicator:
 
 class SimpleMovingAverage(BaseIndicator):
 
-    def add_candle(self, candle_cluster):
+    def update(self, candle_cluster):
         datapoints = candle_cluster.history(self.datapoint)
         simple_moving_average = datapoints.rolling(self.period).mean()
         self.data = DataFrame(data={
@@ -79,7 +86,7 @@ class SampleStandardDeviation(BaseIndicator):
         super().__init__(**options)
         self.indicator_id = 'sample_standard_deviation'
 
-    def add_candle(self, candle_cluster):
+    def update(self, candle_cluster):
         self.is_subplot = True
         datapoints = candle_cluster.history(self.datapoint)
         standard_deviation = datapoints.rolling(self.period).std()
@@ -99,31 +106,7 @@ class BollingerBands(BaseIndicator):
         self.indicator_id = 'bollinger_bands'
         self.multi_y = True
 
-    def add_candle(self, candle):
-        self.std_indicator.add_candle(candle)
-        data_size = len(self.candles_dict.values())
-        if data_size < self.period and candle.time not in self.candles_dict:
-            self.data_dict['x'].append(None)
-            self.data_dict['y'].append(None)
-            self.data_dict['y1'].append(None)
-            self.data_dict['y2'].append(None)
-            self.data_dict['candles'].append(None)
-            self.candles_dict[candle.time] = candle
-        elif data_size >= self.period:
-            self.candles_dict[candle.time] = candle
-            self.data_dict['x'].append(candle.time)
-            period_std = self.std_indicator.data.iloc[-1]['y']
-            period_avg = sum(
-                    [getattr(list(self.candles_dict.values())[j], self.options['on']) for j in range(
-                        data_size - self.period, data_size
-                    )]
-                ) / self.period
-            upper_band = period_avg + period_std * 2
-            lower_band = period_avg - period_std * 2
-            self.data_dict['y'].append(upper_band)
-            self.data_dict['y1'].append(period_avg)
-            self.data_dict['y2'].append(lower_band)
-            self.data_dict['candles'].append(candle)
+    def update(self, candle_cluster):
         self.data = DataFrame(data=self.data_dict)
 
 
@@ -138,7 +121,7 @@ class ZScoreOfPrice(BaseIndicator):
         zscore = (rolling_window.iloc[-1] - rolling_window.mean()) / rolling_window.std()
         return zscore
 
-    def add_candle(self, candle_cluster):
+    def update(self, candle_cluster):
         self.is_subplot = True
         datapoints = candle_cluster.history(self.datapoint)
         window = datapoints.rolling(self.period)
@@ -158,11 +141,11 @@ class DifferenceBetween(BaseIndicator):
         self.indicator_id = 'difference_between'
         self.period = max([indicator.period for indicator in indicators])
 
-    def add_candle(self, candle):
+    def update(self, candle):
         self.is_subplot = True
         data_size = len(self.candles_dict.values())
         for indicator in self.indicators:
-            indicator.add_candle(candle)
+            indicator.update(candle)
         if data_size < self.period and candle.time not in self.candles_dict:
             self.data_dict['x'].append(None)
             self.data_dict['y'].append(None)
@@ -194,7 +177,7 @@ class AverageDifference(BaseIndicator):
         avg_diff = differences.mean()
         return avg_diff
 
-    def add_candle(self, candle_cluster):
+    def update(self, candle_cluster):
         self.is_subplot = True
         window = candle_cluster.history(self.datapoint).rolling(self.period, min_periods=self.period)
         average_differences = window.apply(self.__calculate_average_difference)
