@@ -6,6 +6,8 @@
 ## December 2023 ####
 
 ### 0.4.0a - Unreleased ###
+- TD-3544: Fixed bug in Backtester/MarketSimulator where the market would freeze at 17:00 on Fridays.
+due to the market closing.
 
 ### 0.3.5a - 12 December 2023 ###
 - Add more test coverage.
