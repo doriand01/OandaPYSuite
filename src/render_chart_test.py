@@ -10,12 +10,18 @@ def main():
 
     api = opy.api.API()
 
-    candles = api.get_candles('AUD_USD', 'M1', count=5000)
+    candles = api.get_candles('AUD_USD', 'M1', count=2000)
     print(candles.to_dataframe())
-    boll_bands = opy.objects.indicators.BollingerBands(period=60, color='purple', name='bollinger bands')
-    boll_bands.update(candles)
-    api.initialize_chart(candles, type='ohlc')
-    api.add_indicator(boll_bands)
+    psar = opy.objects.indicators.trend.ParabolicSAR(color='orange', name='parabolic sar', accel=0.02, max=0.2)
+    zscore = opy.objects.indicators.volatility.ZScoreOfPrice(on='close', period=60, color='black', name='zscore')
+    std = opy.objects.indicators.volatility.SampleStandardDeviation(on='close', period=60, color='red', name='std 60')
+    psar.update(candles)
+    zscore.update(candles)
+    std.update(candles)
+    api.initialize_chart(candles)
+    api.add_indicator(zscore)
+    api.add_indicator(std)
+    api.add_indicator(psar)
     """
         for index, point in sigs.iterrows():
             if point['y'] == 1:

@@ -45,8 +45,8 @@ class ClusterConcatException(Exception):
 
 class IndicatorOptionsError(Exception):
 
-    def __init__(self, indicator, msg):
-        super(IndicatorOptionsError, self).__init__(f'Invalid options for indicator {indicator}: \n {msg}')
+    def __init__(self, msg):
+        super(IndicatorOptionsError, self).__init__(f'{msg}')
 
 class APIError(Exception):
 

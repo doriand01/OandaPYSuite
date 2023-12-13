@@ -260,7 +260,6 @@ class TestAPI(unittest.TestCase):
             for row in indicator.data.iterrows():
                 self.assertIsInstance(row[1]['y'], float)
                 self.assertIsInstance(row[1]['x'], datetime)
-                self.assertIsInstance(row[1]['candles'], oandapysuite.objects.instrument.CandleCluster.Candle)
 
 
 

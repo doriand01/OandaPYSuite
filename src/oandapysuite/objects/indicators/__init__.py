@@ -38,6 +38,8 @@ class BaseIndicator:
         self.data = DataFrame(data={})
 
     def _validate_options(self, options: dict):
+        a = [required_option in options.keys() for required_option in self.required_options]
+        pass
         if not all([required_option in options.keys() for required_option in self.required_options]):
             raise IndicatorOptionsError(f'{self.__class__.__name__}, requires the options {self.required_options}')
 

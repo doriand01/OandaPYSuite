@@ -17,7 +17,6 @@ class SampleStandardDeviation(BaseIndicator):
         datapoints = candle_cluster.history(self.on)
         standard_deviation = datapoints.rolling(self.period).std()
         self.data = DataFrame(data={
-            'candles' : candle_cluster.candles,
             'x'       : candle_cluster.history('time'),
             'y'       : standard_deviation
         })
@@ -34,7 +33,6 @@ class BollingerBands(BaseIndicator):
         datapoints = candle_cluster.history(self.on)
         boll_bands = ta.volatility.BollingerBands(close=datapoints, window=self.period, window_dev=self.std)
         self.data = DataFrame(data={
-            'candles' : candle_cluster.candles,
             'x'       : candle_cluster.history('time'),
             'y1'      : boll_bands.bollinger_lband(),
             'y2'      : boll_bands.bollinger_hband(),
@@ -53,7 +51,6 @@ class KeltnerChannels(BaseIndicator):
         datapoints = candle_cluster.history(self.on)
         keltner_channels = ta.volatility.KeltnerChannel(close=datapoints, window=self.period)
         self.data = DataFrame(data={
-            'candles' : candle_cluster.candles,
             'x'       : candle_cluster.history('time'),
             'y1'      : keltner_channels.keltner_channel_lband(),
             'y2'      : keltner_channels.keltner_channel_hband(),
@@ -73,7 +70,6 @@ class UlcerIndex(BaseIndicator):
             datapoints = candle_cluster.history(self.on)
             ulcer_index = ta.volatility.UlcerIndex(close=datapoints, window=self.period)
             self.data = DataFrame(data={
-                'candles' : candle_cluster.candles,
                 'x'       : candle_cluster.history('time'),
                 'y'       : ulcer_index.ulcer_index(),
             })
@@ -93,7 +89,6 @@ class AverageTrueRange(BaseIndicator):
             closes = candle_cluster.history('close')
             average_true_range = ta.volatility.AverageTrueRange(high=highs, low=lows, close=closes, window=self.period)
             self.data = DataFrame(data={
-                'candles' : candle_cluster.candles,
                 'x'       : candle_cluster.history('time'),
                 'y'       : average_true_range.average_true_range(),
             })
@@ -115,7 +110,6 @@ class DonchianChannel(BaseIndicator):
                 closes = candle_cluster.history('close')
                 donchian_channel = ta.volatility.DonchianChannel(high=highs, low=lows, close=closes, window=self.period)
                 self.data = DataFrame(data={
-                    'candles' : candle_cluster.candles,
                     'x'       : candle_cluster.history('time'),
                     'y1'       : donchian_channel.donchian_channel_lband(),
                     'y2'       : donchian_channel.donchian_channel_mband(),
@@ -142,7 +136,6 @@ class ZScoreOfPrice(BaseIndicator):
         window = datapoints.rolling(self.period)
         zscore = window.apply(self.__calculate_zscore)
         self.data = DataFrame(data={
-            'candles' : candle_cluster.candles,
             'x'       : candle_cluster.history('time'),
             'y'       : zscore
         })
@@ -166,7 +159,6 @@ class AverageDifference(BaseIndicator):
         window = candle_cluster.history(self.on).rolling(self.period, min_periods=self.period)
         average_differences = window.apply(self.__calculate_average_difference)
         self.data = DataFrame(data={
-            'candles' : candle_cluster.candles,
             'x'       : candle_cluster.history('time'),
             'y'       : average_differences
         })

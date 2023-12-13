@@ -5,10 +5,18 @@
 
 ## December 2023 ####
 
-### 0.4.2a - 12 December 2023 ###
+### 0.4.3a - 12 December 2023 ###
+- Add several indicators to from ta-lib to indicators module. There are some left that have been added soon that 
+need to be added. See TODO.md for more details. TA indicators that require advanced chart renderings (histograms, signal)
+line etc. will be added in a future release.
+- Remove data['candles'] column from indicators. This column is no longer needed.
+- Remove related test coverage for data['candles'] column.
+
+### 0.4.2a ###
 - Refactored indicators.py from a module to a package.
 - Added KeltnerChannel, AverageTrueRange, DonchianChannel, and UlcerIndex indicators, in accordance with
 TD-42.1.13
+
 ### 0.4.1a ###
 - Reimplemented BollingerBands indicator. First indicator to use pandas ta library. Will begin
 refactoring other indicators to use pandas ta library in future releases.

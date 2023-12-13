@@ -17,6 +17,8 @@
 - **041-003-011** Refactor initialize_chart() method in API to provide for custom options
 when initializing candlestick charts. (Done in 0.4.1a)
 - **042-002-014** Make indicators.py a package instead of a module. (Done in 0.4.2a)
+- **043-001-015** Remove indicators.py (Done in 0.4.3a)
+- **043-002-016** Remove candles column from indicator DataFrames. (Done in 0.4.3a)
 
 ### Planned
 
