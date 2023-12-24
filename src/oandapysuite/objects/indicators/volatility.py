@@ -29,6 +29,12 @@ class BollingerBands(BaseIndicator):
         super().__init__(**options)
         self.y_count = 3
 
+    def is_up(self):
+        return True if self.data.iloc[-1]['is_up'] else False
+
+    def is_down(self):
+        return True if self.data.iloc[-1]['is_down'] else False
+
     def update(self, candle_cluster):
         datapoints = candle_cluster.history(self.on)
         boll_bands = ta.volatility.BollingerBands(close=datapoints, window=self.period, window_dev=self.std)
@@ -37,6 +43,8 @@ class BollingerBands(BaseIndicator):
             'y1'      : boll_bands.bollinger_lband(),
             'y2'      : boll_bands.bollinger_hband(),
             'y3'      : boll_bands.bollinger_mavg(),
+            'is_up'   : boll_bands.bollinger_hband_indicator(),
+            'is_down' : boll_bands.bollinger_lband_indicator(),
         })
 
 
@@ -47,6 +55,12 @@ class KeltnerChannels(BaseIndicator):
         super().__init__(**options)
         self.y_count = 3
 
+    def is_up(self):
+        return True if self.data.iloc[-1]['is_up'] else False
+
+    def is_down(self):
+        return True if self.data.iloc[-1]['is_down'] else False
+
     def update(self, candle_cluster):
         datapoints = candle_cluster.history(self.on)
         keltner_channels = ta.volatility.KeltnerChannel(close=datapoints, window=self.period)
@@ -55,6 +69,8 @@ class KeltnerChannels(BaseIndicator):
             'y1'      : keltner_channels.keltner_channel_lband(),
             'y2'      : keltner_channels.keltner_channel_hband(),
             'y3'      : keltner_channels.keltner_channel_mband(),
+            'is_up'   : keltner_channels.keltner_channel_hband_indicator(),
+            'is_down' : keltner_channels.keltner_channel_lband_indicator(),
         })
 
 

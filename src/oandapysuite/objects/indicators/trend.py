@@ -22,6 +22,22 @@ class SimpleMovingAverage(BaseIndicator):
         })
 
 
+class ExponentialMovingAverage(BaseIndicator):
+
+    def __init__(self, **options):
+        self.required_options = ['on', 'period']
+        super().__init__(**options)
+        self.indicator_id = 'exponential_moving_average'
+
+    def update(self, candle_cluster):
+        datapoints = candle_cluster.history(self.on)
+        exponential_moving_average = ta.trend.EMAIndicator(close=datapoints, window=self.period)
+        self.data = DataFrame(data={
+            'x'       : candle_cluster.history('time'),
+            'y'       : exponential_moving_average.ema_indicator()
+        })
+
+
 class TRIX(BaseIndicator):
     def __init__(self, **options):
         self.required_options = ['on', 'period']
@@ -66,6 +82,9 @@ class ParabolicSAR(BaseIndicator):
         self.y_count = 2
         self.indicator_id = 'parabolic_sar'
 
+    def is_psar_up(self):
+        return True if self.data['is_psar_up'].iloc[-1] else False
+
     def update(self, candle_cluster):
         highs = candle_cluster.history('high')
         lows = candle_cluster.history('low')
@@ -74,5 +93,7 @@ class ParabolicSAR(BaseIndicator):
         self.data = DataFrame(data={
             'x'       : candle_cluster.history('time'),
             'y1'       : parabolic_sar.psar_down(),
-            'y2'       : parabolic_sar.psar_up()
+            'y2'       : parabolic_sar.psar_up(),
+            'is_psar_up' : parabolic_sar.psar_up_indicator(),
+            'is_psar_down' : parabolic_sar.psar_down_indicator()
         })

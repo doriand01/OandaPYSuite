@@ -52,3 +52,8 @@ class APIError(Exception):
 
     def __init__(self, code, msg):
         super(APIError, self).__init__(f'Request to API failed with code {code}:\n{msg}')
+
+class SignalOptionsError(Exception):
+
+    def __init__(self, msg):
+        super(SignalOptionsError, self).__init__(f'{msg}')

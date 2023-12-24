@@ -5,6 +5,10 @@
 
 ## December 2023 ####
 
+### 0.4.4a - 24 December 2023 ###
+- Add ta-lib's EMA indicator.
+- Finished TD-43.3.17: Clean up BaseSignal class and how the indicators are used.
+
 ### 0.4.3a - 12 December 2023 ###
 - Add several indicators to from ta-lib to indicators module. There are some left that have been added soon that 
 need to be added. See TODO.md for more details. TA indicators that require advanced chart renderings (histograms, signal)

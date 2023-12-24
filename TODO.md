@@ -7,6 +7,13 @@
 
 - **040-001-008** Deprecate stats.py and refactor references to it. (Priority: low)
 - **042-001-013** Add all ta indicators to the API. (Priority: high)
+- **043-005-019** Add volume indicators (Priority: medium)
+- **043-006-020** Add functionality in get_candles() _from and to parameters to accept
+negative numbers as arguments. (eg. _from=-10 start at the the 10th candle from present.
+and to=-5 would end at the 5th candle from present) (Priority: medium)
+- **043-007-021** Update test coverage to include new indicator classes and functionality. (Priority: low)
+- **043-008-022** Update documentation. (Priority: low)
+- **043-009-023** Implement __getitem__ method for Indicator classes. (Priority: low)
 
 
 ### Done
@@ -19,13 +26,15 @@ when initializing candlestick charts. (Done in 0.4.1a)
 - **042-002-014** Make indicators.py a package instead of a module. (Done in 0.4.2a)
 - **043-001-015** Remove indicators.py (Done in 0.4.3a)
 - **043-002-016** Remove candles column from indicator DataFrames. (Done in 0.4.3a)
+- **043-004-018** Add indicator crossover methods to indicator classes. Only added for
+BollingerBands, Keltner Channels, and PSAR. Most indicators actually don't have them.
+will add more in the future most likely. (Done in 0.4.3a)
+- **043-003-017** Clean up BaseSignal class and how the indicators are used. (Done in 0.4.4a)
 
 ### Planned
 
 
 ### Abandoned
-- **035-002-002** Refactor BaseIndicator() to take a `CandleCluster` object when instantiated. 
-- **035-003-003** Refactor test cases to reflect 035-001-001 and 035-002-002.
 - **035-006-006** Patch bug 003. Will get to this later (Abandoned in 0.4.0a)
 - **035-007-007** Patch bug 004. Will get to this later (Abandoned in 0.4.0a)
 - **041-001-009** Clean up add_indicator() method in API. Couldn't figure out how lol. I'll probably do it later.
@@ -36,18 +45,18 @@ when initializing candlestick charts. (Done in 0.4.1a)
 ### 003 ###
 - Using the API's `get_child_candles()` method to retrieve children candles on a Candle that has not yet closed will result in a 
 in an APIError with the following message "Invalid value specified for 'to'. The time is in the future".
-- Last known version affected: 0.3.5a
+- Last known version affected: 0.4.4a
 
 ### 004 ###
 - There's a discrepancy between requested datetimes and return datetimes with the UnixTime object. 
 this is most likely due to timezone offset between local time and UTC time.
-- Last known version affected: 0.3.5a
+- Last known version affected: 0.4.4a
 
 ### 005 ###
 - DST change in March and November each year breaks datetime representation for candles. This is because the API returns candles
 based on UTC time, and the UnixTime object converts the local time to UTC. Major bug with cascading effects. on every
 function that relies on the UnixTime object, as well as time calculations and precision.
-- Last known version affected: 0.3.5a
+- Last known version affected: 0.4.4a
 
 ---
 

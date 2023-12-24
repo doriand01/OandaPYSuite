@@ -124,7 +124,6 @@ class MarketSimulator:
             speed_factor=1.0,
             ticks_per_second=20,
             generate_for='S5',
-            indicators: list[BaseIndicator] = None,
             signal: BaseSignal = None):
         """
         Creates the MarketSimulator.
@@ -152,7 +151,6 @@ class MarketSimulator:
         self.current_tick = 0
         self.periods = 0
         self.signal = signal
-        self.indicators = indicators
         self.paused = False
 
     def get_candle_cluster(self):
@@ -225,7 +223,8 @@ class Backtester(MarketSimulator):
         self.trade_type = 0
 
     def __check_signal(self):
-        sig_val = self.signal.get_signal(self.current_candle)
+        candle_cluster = CandleCluster(cand_list=list(self.candles_dict.values()))
+        sig_val = self.signal.get_signal(self.current_candle, cluster=candle_cluster)
         if self.trade_type == 0:
             if sig_val == 1:
                 print(f'''Entering long @ {self.current_price}, time: {self.current_time} '''
@@ -251,6 +250,7 @@ class Backtester(MarketSimulator):
                 self.__exit_trade()
 
     def __update_price(self, candle, is_close=False, is_open=False):
+        pass
         if is_close: self.current_price = candle.close
         elif is_open: self.current_price = candle.open
         else:
@@ -258,14 +258,11 @@ class Backtester(MarketSimulator):
             self.current_price += up_or_down() * ((candle.high-candle.low) * Decimal(ceil(random()*20)*5/200))
             if self.current_price > candle.high: self.current_price = candle.high
             elif self.current_price < candle.low: self.current_price = candle.low
-        if self.periods > self.start_signal:
-            self.__check_signal()
+
 
     def __get_candle_at_time(self, candle, target_time):
         pass
         if candle.gran == self.generate_for:
-            for indicator in self.indicators:
-                indicator.update(CandleCluster(cand_list=list(self.candles_dict.values())))
             adjusted_candle = deepcopy(candle)
             adjusted_candle.close = self.current_price
             self.candles_dict[candle.time] = adjusted_candle
@@ -294,28 +291,27 @@ class Backtester(MarketSimulator):
             speed_factor: float = 1.0,
             ticks_per_second: int = 20,
             generate_for: str = 'M1',
-            indicators: list[BaseIndicator] = None,
             signal: BaseSignal = None):
-        super().__init__(window, api_object, speed_factor=speed_factor, ticks_per_second=ticks_per_second, generate_for=generate_for, indicators=indicators, signal=signal)
+        super().__init__(window, api_object, speed_factor=speed_factor, ticks_per_second=ticks_per_second, generate_for=generate_for, signal=signal)
         self.current_candle = self.__get_candle_at_time(window[0], self.current_time)
         self.signal = signal
-        self.indicators = indicators
         self.generate_for = generate_for
         self.entry_price = 0
         self.trade_type = 0
         self.trades = []
-        self.start_signal = max([indicator.period for indicator in self.indicators]) + 1
 
     def _do_tick(self, current_macro_candle):
         super()._do_tick(current_macro_candle)
+        pass
+        if self.periods > self.signal.max_period:
+            pass
+            self.__check_signal()
 
     def run(self):
         try:
             for i in range(len(self.window)):
                 current_macro_candle = self.window[i]
                 while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
-                    if self.paused:
-                        continue
                     self._do_tick(current_macro_candle)
         except KeyboardInterrupt:
             print(f'Exiting simulation at {self.current_time}')
