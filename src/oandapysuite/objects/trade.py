@@ -1,6 +1,6 @@
 import oandapysuite.objects.signals
 from oandapysuite.objects.instrument import CandleCluster
-from oandapysuite.stats import candlex
+from oandapysuite.objects.datatypes import candlex
 from oandapysuite.objects.indicators import BaseIndicator
 from oandapysuite.objects.signals import BaseSignal
 
@@ -56,11 +56,11 @@ class MarketSimulator:
     # Uses recursive logic to get the relevant candle for a specified target time. The candle to be returned depends on
     # what the target time is, as well as the speed of the simulation. In order for the simulation to run properly,
     # there needs to be enough tick updates within a specified timeframe (at least four) for the market to correctly
-    # simulate the historic price components for each candle (open, low high, close). If the simulation is running too
+    # simulate the historic price components for each candle (open, low, high, close). If the simulation is running too
     # fast, the tick updates will not be able to properly simulate the price components for each candle, and the
     # simulation will not be accurate. If the time delta (how far forward in time the simulation advances per tick)
     # is greater than 1/4 the length of the timeframe, then that timeframe is too low to be simulated, and the
-    # candles from the higher  timeframe will be returned instead. Otherwise, the candles from the lowest possible
+    # candles from the higher timeframe will be returned instead. Otherwise, the candles from the lowest possible
     # timeframe that can be simulated under the simulation conditions will be returned.
     def __get_candle_at_time(self, candle, target_time):
 

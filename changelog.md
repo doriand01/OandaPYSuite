@@ -5,6 +5,14 @@
 
 ## December 2023 ####
 
+### 0.4.5a - 25 December 2023 ###
+- Finish TD-40.1.8: deprecated stats.py and refactor references to it.
+- Finish TD-43.6.20: Add functionality in get_candles() _from and to parameters to accept integers as arguments.
+- Refactored _from and to parameters and renamed them to start and end.
+- Added previously unimplemented indicators from TA-lib: KAMA, StochasticRSI, UltimateOscillator, DPO,
+- Add signal and histogram to PercentagePriceOscillator indicator.
+- test_indicators test case now fails. Need to fix this.
+
 ### 0.4.4a - 24 December 2023 ###
 - Add ta-lib's EMA indicator.
 - Finished TD-43.3.17: Clean up BaseSignal class and how the indicators are used.

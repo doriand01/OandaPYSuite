@@ -1,7 +1,6 @@
 from oandapysuite import settings
 from oandapysuite import exceptions
 from oandapysuite import api
-from oandapysuite import stats
 from oandapysuite import endpoints
 from oandapysuite import objects
 

@@ -28,6 +28,7 @@ class PercentagePriceOscillator(BaseIndicator):
         self.required_options = ['on', 'period1', 'period2', 'signal']
         super().__init__(**options)
         self.is_subplot = True
+        self.y_count = 3
         self.indicator_id = 'percentage_price_oscillator'
 
     def update(self, candle_cluster):
@@ -35,7 +36,9 @@ class PercentagePriceOscillator(BaseIndicator):
         percentage_price_oscillator = ta.momentum.PercentagePriceOscillator(close=datapoints, window_slow=self.period1, window_fast=self.period2, window_sign=self.signal)
         self.data = DataFrame(data={
             'x'       : candle_cluster.history('time'),
-            'y'       : percentage_price_oscillator.ppo()
+            'y1'       : percentage_price_oscillator.ppo(),
+            'y2'      : percentage_price_oscillator.ppo_signal(),
+            'y3'      : percentage_price_oscillator.ppo_hist()
         })
 
 
@@ -105,3 +108,80 @@ class TrueStrengthIndex(BaseIndicator):
             'x'       : candle_cluster.history('time'),
             'y'       : true_strength_index.tsi()
         })
+
+
+class KAMA(BaseIndicator):
+
+    def __init__(self, **options):
+        self.required_options = ['on', 'period1', 'period2', 'period3']
+        super().__init__(**options)
+        self.is_subplot = True
+        self.indicator_id = 'kama'
+
+    def update(self, candle_cluster):
+        datapoints = candle_cluster.history(self.on)
+        kama = ta.momentum.KAMAIndicator(close=datapoints, window=self.period1, pow1=self.period2, pow2=self.period3)
+        self.data = DataFrame(data={
+            'x'       : candle_cluster.history('time'),
+            'y'       : kama.kama()
+        })
+
+class StochasticRSI(BaseIndicator):
+
+    def __init__(self, **options):
+        self.required_options = ['on', 'period', 'smooth1', 'smooth2']
+        super().__init__(**options)
+        self.is_subplot = True
+        self.y_count = 3
+        self.indicator_id = 'stochastic_rsi'
+
+    def update(self, candle_cluster):
+        datapoints = candle_cluster.history(self.on)
+        stochastic_rsi = ta.momentum.StochasticRSIIndicator(close=datapoints, window=self.period, smooth1=self.smooth1, smooth2=self.smooth2)
+        self.data = DataFrame(data={
+            'x'       : candle_cluster.history('time'),
+            'y1'       : stochastic_rsi.stochrsi(),
+            'y2'       : stochastic_rsi.stochrsi_d(),
+            'y3'       : stochastic_rsi.stochrsi_k()
+        })
+
+class UltimateOscillator(BaseIndicator):
+
+    def __init__(self, **options):
+        self.required_options = ['period1', 'period2', 'period3', 'weight1', 'weight2', 'weight3']
+        super().__init__(**options)
+        self.is_subplot = True
+        self.indicator_id = 'ultimate_oscillator'
+
+    def update(self, candle_cluster):
+        highs = candle_cluster.history('high')
+        lows = candle_cluster.history('low')
+        closes = candle_cluster.history('close')
+        ultimate_oscillator = ta.momentum.UltimateOscillator(
+            high=highs, low=lows, close=closes,
+            window1=self.period1, window2=self.period2,
+            window3=self.period3, weight1=self.weight1,
+            weight2=self.weight2, weight3=self.weight3)
+        self.data = DataFrame(data={
+            'x'       : candle_cluster.history('time'),
+            'y'       : ultimate_oscillator.ultimate_oscillator()
+        })
+
+
+class WilliamsR(BaseIndicator):
+
+        def __init__(self, **options):
+            self.required_options = ['period']
+            super().__init__(**options)
+            self.is_subplot = True
+            self.indicator_id = 'williams_r'
+
+        def update(self, candle_cluster):
+            highs = candle_cluster.history('high')
+            lows = candle_cluster.history('low')
+            closes = candle_cluster.history('close')
+            williams_r = ta.momentum.WilliamsRIndicator(high=highs, low=lows, close=closes, lbp=self.period)
+            self.data = DataFrame(data={
+                'x'       : candle_cluster.history('time'),
+                'y'       : williams_r.williams_r()
+            })

@@ -4,16 +4,12 @@
 ## Todos
 
 ### In progress
-
-- **040-001-008** Deprecate stats.py and refactor references to it. (Priority: low)
 - **042-001-013** Add all ta indicators to the API. (Priority: high)
 - **043-005-019** Add volume indicators (Priority: medium)
-- **043-006-020** Add functionality in get_candles() _from and to parameters to accept
-negative numbers as arguments. (eg. _from=-10 start at the the 10th candle from present.
-and to=-5 would end at the 5th candle from present) (Priority: medium)
 - **043-007-021** Update test coverage to include new indicator classes and functionality. (Priority: low)
 - **043-008-022** Update documentation. (Priority: low)
 - **043-009-023** Implement __getitem__ method for Indicator classes. (Priority: low)
+- **045-001-024** Figure out how Ichmimoku works and implement it. (Priority: low)
 
 
 ### Done
@@ -30,6 +26,9 @@ when initializing candlestick charts. (Done in 0.4.1a)
 BollingerBands, Keltner Channels, and PSAR. Most indicators actually don't have them.
 will add more in the future most likely. (Done in 0.4.3a)
 - **043-003-017** Clean up BaseSignal class and how the indicators are used. (Done in 0.4.4a)
+- **040-001-008** Deprecate stats.py and refactor references to it. (Done in 0.4.5a)
+- **043-006-020** Add functionality in get_candles() _from and to parameters to accept
+integers as arguments. (Done in 0.4.5a)
 
 ### Planned
 
@@ -45,18 +44,22 @@ will add more in the future most likely. (Done in 0.4.3a)
 ### 003 ###
 - Using the API's `get_child_candles()` method to retrieve children candles on a Candle that has not yet closed will result in a 
 in an APIError with the following message "Invalid value specified for 'to'. The time is in the future".
-- Last known version affected: 0.4.4a
+- Last known version affected: 0.4.5a
 
 ### 004 ###
 - There's a discrepancy between requested datetimes and return datetimes with the UnixTime object. 
 this is most likely due to timezone offset between local time and UTC time.
-- Last known version affected: 0.4.4a
+- Last known version affected: 0.4.5a
 
 ### 005 ###
 - DST change in March and November each year breaks datetime representation for candles. This is because the API returns candles
 based on UTC time, and the UnixTime object converts the local time to UTC. Major bug with cascading effects. on every
 function that relies on the UnixTime object, as well as time calculations and precision.
-- Last known version affected: 0.4.4a
+- Last known version affected: 0.4.5a
+
+### 006 ###
+- test_indicators test case fails. Need to fix this.
+- Last known version affected: 0.4.5a
 
 ---
 

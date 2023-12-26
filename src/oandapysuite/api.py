@@ -1,5 +1,4 @@
 from oandapysuite import exceptions
-from oandapysuite.stats import candlex
 from oandapysuite.settings import AUTH_FILEPATH
 from oandapysuite.endpoints import account as acc
 from oandapysuite.endpoints import instrument
@@ -7,11 +6,12 @@ from oandapysuite.objects import trade
 from oandapysuite.objects.instrument import CandleCluster
 from oandapysuite.objects.indicators import BaseIndicator
 from oandapysuite.objects.indicators.volatility import AverageDifference
-from oandapysuite.objects.datatypes import UnixTime
+from oandapysuite.objects.datatypes import UnixTime, candlex
 
 import json
 import logging
 from time import sleep
+from datetime import datetime, timedelta
 from copy import deepcopy
 from requests import get, post, put
 
@@ -33,7 +33,7 @@ class API:
             return [1]
         return [0.8] + [(1-0.8)/num_subplots] * num_subplots
 
-    def get_candles(self, ins, gran, count=None, _from=None, to=None):
+    def get_candles(self, ins, gran, count=None, start=None, end=None):
         """
         Returns candle clusters from a specified period.
 
@@ -55,7 +55,14 @@ class API:
         if count:
             response = get(instrument.Instrument.get_candles(ins,gran, count=count),headers=self.auth_header)
         else:
-            response = get(instrument.Instrument.get_candles(ins,gran, from_time=_from, to_time=to), headers=self.auth_header)
+            if type(start) == int and type(end) == int:
+                start_dt_obj = datetime.now() - timedelta(seconds=start*candlex[gran])
+                end_dt_obj = datetime.now() - timedelta(seconds=end*candlex[gran])
+                start_unix_obj = UnixTime(start_dt_obj.strftime('%Y-%m-%d %H:%M'))
+                end_unix_obj = UnixTime(end_dt_obj.strftime('%Y-%m-%d %H:%M'))
+                response = get(instrument.Instrument.get_candles(ins, gran, from_time=start_unix_obj, to_time=end_unix_obj), headers=self.auth_header)
+            elif type(start) == UnixTime and type(end) == UnixTime:
+                response = get(instrument.Instrument.get_candles(ins, gran, from_time=start, to_time=end), headers=self.auth_header)
 
         if response.status_code != 200:
             raise exceptions.APIError(response.status_code,response.text)
@@ -162,7 +169,7 @@ class API:
 
         start = int(candle.time.timestamp())
         end = int(candle.time.timestamp()) + candlex[candle.gran]
-        return self.get_candles(candle.instrument, gran, _from=UnixTime(start), to=UnixTime(end))
+        return self.get_candles(candle.instrument, gran, start=UnixTime(start), end=UnixTime(end))
 
     def initialize_chart(self, candle_data: CandleCluster, type='candlestick'):
         cluster_df = candle_data.to_dataframe()

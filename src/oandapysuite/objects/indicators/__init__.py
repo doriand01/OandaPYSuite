@@ -61,4 +61,6 @@ class BaseIndicator:
                     'y'       : []
                 }
             )
+
+
 from oandapysuite.objects.indicators import trend, volatility, volume, momentum, other

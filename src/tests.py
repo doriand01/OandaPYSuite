@@ -140,12 +140,12 @@ class TestAPI(unittest.TestCase):
         end5 = oandapysuite.objects.datatypes.UnixTime("2015-01-07 13:00")
         end6 = oandapysuite.objects.datatypes.UnixTime("2020-01-08 13:00")
 
-        one_day_test_on_H1_for_audusd_start1_end1 = api_object.get_candles('AUD_USD', 'H1', _from=start1, to=end1)
-        one_day_test_on_H1_for_audusd_start2_end2 = api_object.get_candles('AUD_USD', 'H1', _from=start2, to=end2)
-        one_day_test_on_H1_for_audusd_start3_end3 = api_object.get_candles('AUD_USD', 'H1', _from=start3, to=end3)
-        one_day_test_on_H1_for_audusd_start4_end4 = api_object.get_candles('AUD_USD', 'H1', _from=start4, to=end4)
-        one_day_test_on_H1_for_audusd_start5_end5 = api_object.get_candles('AUD_USD', 'H1', _from=start5, to=end5)
-        one_day_test_on_H1_for_audusd_start6_end6 = api_object.get_candles('AUD_USD', 'H1', _from=start6, to=end6)
+        one_day_test_on_H1_for_audusd_start1_end1 = api_object.get_candles('AUD_USD', 'H1', start=start1, end=end1)
+        one_day_test_on_H1_for_audusd_start2_end2 = api_object.get_candles('AUD_USD', 'H1', start=start2, end=end2)
+        one_day_test_on_H1_for_audusd_start3_end3 = api_object.get_candles('AUD_USD', 'H1', start=start3, end=end3)
+        one_day_test_on_H1_for_audusd_start4_end4 = api_object.get_candles('AUD_USD', 'H1', start=start4, end=end4)
+        one_day_test_on_H1_for_audusd_start5_end5 = api_object.get_candles('AUD_USD', 'H1', start=start5, end=end5)
+        one_day_test_on_H1_for_audusd_start6_end6 = api_object.get_candles('AUD_USD', 'H1', start=start6, end=end6)
         pass
 
         # Assert that the returned objects have the correct number of candles (24)

@@ -1,5 +1,5 @@
-from oandapysuite.stats import candlex
 from oandapysuite.exceptions import HighestGranularityException, LowestGranularityException
+from oandapysuite.objects.datatypes import candlex
 
 import json
 import decimal
