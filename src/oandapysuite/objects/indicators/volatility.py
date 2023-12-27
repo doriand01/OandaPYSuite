@@ -28,6 +28,7 @@ class BollingerBands(BaseIndicator):
         self.required_options = ['on', 'period', 'std']
         super().__init__(**options)
         self.y_count = 3
+        self.indicator_id = 'bollinger_bands'
 
     def is_up(self):
         return True if self.data.iloc[-1]['is_up'] else False
@@ -54,6 +55,7 @@ class KeltnerChannels(BaseIndicator):
         self.required_options = ['on', 'period']
         super().__init__(**options)
         self.y_count = 3
+        self.indicator_id = 'keltner_channels'
 
     def is_up(self):
         return True if self.data.iloc[-1]['is_up'] else False

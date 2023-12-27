@@ -98,6 +98,7 @@ class ParabolicSAR(BaseIndicator):
             'is_psar_down' : parabolic_sar.psar_down_indicator()
         })
 
+
 class DetrendedPriceOscillator(BaseIndicator):
 
     def __init__(self, **options):
@@ -114,6 +115,7 @@ class DetrendedPriceOscillator(BaseIndicator):
             'y'       : detrended_price_oscillator.dpo()
         })
 
+
 class MovingAverageConvergenceDivergence(BaseIndicator):
 
     def __init__(self, **options):
@@ -124,7 +126,9 @@ class MovingAverageConvergenceDivergence(BaseIndicator):
 
     def update(self, candle_cluster):
         datapoints = candle_cluster.history(self.on)
-        moving_average_convergence_divergence = ta.trend.MACD(close=datapoints, window_slow=self.period_slow, window_fast=self.period_fast, window_sign=self.period_signal)
+        moving_average_convergence_divergence = ta.trend.MACD(
+            close=datapoints, window_slow=self.period_slow,
+            window_fast=self.period_fast, window_sign=self.period_signal)
         self.data = DataFrame(data={
             'x'       : candle_cluster.history('time'),
             'y1'       : moving_average_convergence_divergence.macd(),

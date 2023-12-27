@@ -9,7 +9,9 @@
 - **043-007-021** Update test coverage to include new indicator classes and functionality. (Priority: low)
 - **043-008-022** Update documentation. (Priority: low)
 - **043-009-023** Implement __getitem__ method for Indicator classes. (Priority: low)
-- **045-001-024** Figure out how Ichmimoku works and implement it. (Priority: low)
+- **045-001-024** Figure out how Ichimoku works and implement it. (Priority: low)
+- **046-002-026** Add metadata to each indicator class to make it easier to build charts. (Priority: medium)
+- **047-001-027** Deprecate chart-rendering functionality in API class since RenderEngine class is now available. (Priority: medium)
 
 
 ### Done
@@ -29,6 +31,8 @@ will add more in the future most likely. (Done in 0.4.3a)
 - **040-001-008** Deprecate stats.py and refactor references to it. (Done in 0.4.5a)
 - **043-006-020** Add functionality in get_candles() _from and to parameters to accept
 integers as arguments. (Done in 0.4.5a)
+- - **046-001-025** Add render.py module to handle rendering charts and add RenderEngine class. Add functionality
+for RenderEngine to easily build and construct charts using CandleStick and indicator data. (Done in 0.4.6a)
 
 ### Planned
 
@@ -44,22 +48,27 @@ integers as arguments. (Done in 0.4.5a)
 ### 003 ###
 - Using the API's `get_child_candles()` method to retrieve children candles on a Candle that has not yet closed will result in a 
 in an APIError with the following message "Invalid value specified for 'to'. The time is in the future".
-- Last known version affected: 0.4.5a
+- Last known version affected: 0.4.6a
 
 ### 004 ###
 - There's a discrepancy between requested datetimes and return datetimes with the UnixTime object. 
 this is most likely due to timezone offset between local time and UTC time.
-- Last known version affected: 0.4.5a
+- Last known version affected: 0.4.6a
 
 ### 005 ###
 - DST change in March and November each year breaks datetime representation for candles. This is because the API returns candles
 based on UTC time, and the UnixTime object converts the local time to UTC. Major bug with cascading effects. on every
 function that relies on the UnixTime object, as well as time calculations and precision.
-- Last known version affected: 0.4.5a
+- Last known version affected: 0.4.6a
 
 ### 006 ###
 - test_indicators test case fails. Need to fix this.
-- Last known version affected: 0.4.5a
+- Last known version affected: 0.4.6a
+
+### 007 ###
+- get_candles() has issues when indexing by integer.
+- Last known version affected: 0.4.6a
+
 
 ---
 

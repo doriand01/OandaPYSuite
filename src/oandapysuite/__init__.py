@@ -3,9 +3,9 @@ from oandapysuite import exceptions
 from oandapysuite import api
 from oandapysuite import endpoints
 from oandapysuite import objects
+from oandapysuite import render
 
-SMA = objects.indicators.trend.SimpleMovingAverage
-SSTD = objects.indicators.volatility.SampleStandardDeviation
+
 
 if not settings.AUTH_FILEPATH:
     print("""No file containing the API Authorization token has been specified. \n

@@ -5,6 +5,9 @@
 
 ## December 2023 ####
 
+### 0.4.6a - 27 December 2023 ###
+- Add render.py module to handle rendering charts and add RenderEngine class. Finishes TD-46.1.25
+
 ### 0.4.5a - 25 December 2023 ###
 - Finish TD-40.1.8: deprecated stats.py and refactor references to it.
 - Finish TD-43.6.20: Add functionality in get_candles() _from and to parameters to accept integers as arguments.
