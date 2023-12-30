@@ -27,12 +27,6 @@ class API:
     """Object that allows the user to access OANDA's REST API endpoints. In order to
     initialize this class, the auth token filepath URI must first be configured in the settings."""
 
-    @staticmethod
-    def __calculate_view_height(num_subplots):
-        if num_subplots == 0:
-            return [1]
-        return [0.8] + [(1-0.8)/num_subplots] * num_subplots
-
     def get_candles(self, ins, gran, count=None, start=None, end=None):
         """
         Returns candle clusters from a specified period.
@@ -158,6 +152,7 @@ class API:
         if signal == 4 and len(self.open_trades) > 0:
             print(f'Signal 4 detected, exiting short @ {cur_price} on {instrument}')
             self.close_trade(self.open_trades[0])
+
     def get_order_book(self, instrument):
         response = get(instrument.Instrument.get_order_book(instrument))
 
@@ -170,68 +165,6 @@ class API:
         start = int(candle.time.timestamp())
         end = int(candle.time.timestamp()) + candlex[candle.gran]
         return self.get_candles(candle.instrument, gran, start=UnixTime(start), end=UnixTime(end))
-
-    def initialize_chart(self, candle_data: CandleCluster, type='candlestick'):
-        cluster_df = candle_data.to_dataframe()
-        if type == 'candlestick':
-            data_trace = plot.Candlestick(
-                            x=cluster_df['time'],
-                            open=cluster_df['open'],
-                            high=cluster_df['high'],
-                            low=cluster_df['low'],
-                            close=cluster_df['close'])
-        elif type == 'ohlc':
-            data_trace = plot.Ohlc(
-                            x=cluster_df['time'],
-                            open=cluster_df['open'],
-                            high=cluster_df['high'],
-                            low=cluster_df['low'],
-                            close=cluster_df['close'])
-        self.fig = plot.Figure(
-            data=[data_trace],
-            layout={'yaxis': {'fixedrange': False},
-                    'title': {'text': f'{candle_data.instrument} {candle_data.gran}'}
-            }
-        )
-
-    def add_indicator(self, indicator: BaseIndicator):
-        if indicator.is_subplot:
-            old_fig = deepcopy(self.fig)
-            self.fig = subplot(rows=len(old_fig.data)+1, cols=1, row_heights=API.__calculate_view_height(len(old_fig.data)), shared_xaxes=True)
-            for i in range(len(old_fig.data)):
-                self.fig.add_trace(old_fig.data[i], row=i+1, col=1)
-            self.fig.add_trace(plot.Scatter(
-                name=indicator.name,
-                x=indicator.data['x'],
-                y=indicator.data['y'],
-                mode='lines',
-                line=plot.scatter.Line(color=indicator.color)),
-                row=len(old_fig.data)+1,
-                col=1)
-        else:
-            if indicator.y_count > 1:
-                for i in range(indicator.y_count):
-                    self.fig.add_trace(
-                        plot.Scatter(
-                            name=indicator.name,
-                            x = indicator.data['x'],
-                            y = indicator.data[f'y{i+1}'],
-                            mode='lines',
-                            line=plot.scatter.Line(color=indicator.color)),
-                    )
-            elif indicator.y_count == 1:
-                self.fig.add_trace(
-                    plot.Scatter(
-                        name=indicator.name,
-                        x = indicator.data['x'],
-                        y = indicator.data['y'],
-                        mode='lines',
-                        line=plot.scatter.Line(color=indicator.color)),
-                )
-
-    def render_chart(self, live=False, data_df=None):
-        self.fig.update_layout(xaxis_rangeslider_visible=False)
-        self.fig.show()
 
     def __init__(self):
         self.auth = str(open(AUTH_FILEPATH, 'r').read())

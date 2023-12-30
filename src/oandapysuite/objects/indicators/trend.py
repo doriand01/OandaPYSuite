@@ -122,7 +122,9 @@ class MovingAverageConvergenceDivergence(BaseIndicator):
         self.required_options = ['on', 'period_fast', 'period_slow', 'period_signal']
         super().__init__(**options)
         self.is_subplot = True
+        self.y_count = 3
         self.indicator_id = 'moving_average_convergence_divergence'
+        self.histogram = 'y3'
 
     def update(self, candle_cluster):
         datapoints = candle_cluster.history(self.on)
@@ -131,7 +133,7 @@ class MovingAverageConvergenceDivergence(BaseIndicator):
             window_fast=self.period_fast, window_sign=self.period_signal)
         self.data = DataFrame(data={
             'x'       : candle_cluster.history('time'),
-            'y1'       : moving_average_convergence_divergence.macd(),
+            'y1'      : moving_average_convergence_divergence.macd(),
             'y2'      : moving_average_convergence_divergence.macd_signal(),
             'y3'      : moving_average_convergence_divergence.macd_diff()
         })

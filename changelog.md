@@ -5,6 +5,10 @@
 
 ## December 2023 ####
 
+### 0.4.7a - 29 December 2023 ###
+- Deprecated chart rendering functionality in API class since it was moved to RenderEngine class. (TD-47.1.27)
+- Added histogram plotting functionality to the RenderEngine, allowing MACD and other indicators to be plotted.
+
 ### 0.4.6a - 27 December 2023 ###
 - Add render.py module to handle rendering charts and add RenderEngine class. Finishes TD-46.1.25
 

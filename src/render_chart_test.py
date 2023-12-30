@@ -10,12 +10,13 @@ def main():
 
     api = opy.api.API()
 
-    candles = api.get_candles('AUD_USD', 'M1', count=4000)
-    print(candles.to_dataframe())
-    williamsr = opy.objects.indicators.momentum.WilliamsR(period=14, name='williamsr', color='red')
-    williamsr.update(candles)
-    api.initialize_chart(candles)
-    api.add_indicator(williamsr)
+    candles = api.get_candles('AUD_USD', 'M1', count=500)
+    macd = opy.objects.indicators.trend.MovingAverageConvergenceDivergence(on='close', period_slow=26, period_fast=12, period_signal=9, color='red', name='macd')
+    ema = opy.objects.indicators.trend.ExponentialMovingAverage(on='close', period=12, color='blue', name='ema')
+    render_engine = opy.render.RenderEngine(candles)
+    render_engine.add_indicator(macd)
+    render_engine.add_indicator(ema)
+    render_engine.render_chart()
 
     '''
         for index, point in sigs.iterrows():

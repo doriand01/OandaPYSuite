@@ -89,17 +89,29 @@ class RenderEngine:
                 elif indicator.y_count > 1:
                     y_str = f'y{i+1}'
                 row,col = plotter_grid.get_subplot_index(indicator.indicator_id).split(',')
-                self.fig.add_trace(
-                    plot.Scatter(
-                        x=indicator.data['x'],
-                        y=indicator.data[y_str],
-                        name=indicator.indicator_id,
-                        mode='lines',
-                        line=dict(color=indicator.color)
-                    ),
-                    row=(int(row)),
-                    col=(int(col)),
-                )
+                if hasattr(indicator, 'histogram') and f'y{i+1}' == indicator.histogram:
+                    self.fig.add_trace(
+                        plot.Bar(
+                            x=indicator.data['x'],
+                            y=indicator.data[y_str],
+                            name=indicator.indicator_id,
+                            marker_color=indicator.color
+                        ),
+                        row=(int(row)),
+                        col=(int(col)),
+                    )
+                else:
+                    self.fig.add_trace(
+                        plot.Scatter(
+                            x=indicator.data['x'],
+                            y=indicator.data[y_str],
+                            name=indicator.indicator_id,
+                            mode='lines',
+                            line=dict(color=indicator.color)
+                        ),
+                        row=(int(row)),
+                        col=(int(col)),
+                    )
         self.fig.update_layout(
             xaxis_rangeslider_visible=False,
             yaxis={'fixedrange': False},

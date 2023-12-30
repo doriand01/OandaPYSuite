@@ -11,8 +11,6 @@
 - **043-009-023** Implement __getitem__ method for Indicator classes. (Priority: low)
 - **045-001-024** Figure out how Ichimoku works and implement it. (Priority: low)
 - **046-002-026** Add metadata to each indicator class to make it easier to build charts. (Priority: medium)
-- **047-001-027** Deprecate chart-rendering functionality in API class since RenderEngine class is now available. (Priority: medium)
-
 
 ### Done
 - **035-001-001** Refactor `add_candle()` method of `BaseIndicator` classes to `update()` (Done in 0.3.5a)
@@ -33,6 +31,7 @@ will add more in the future most likely. (Done in 0.4.3a)
 integers as arguments. (Done in 0.4.5a)
 - - **046-001-025** Add render.py module to handle rendering charts and add RenderEngine class. Add functionality
 for RenderEngine to easily build and construct charts using CandleStick and indicator data. (Done in 0.4.6a)
+- - **047-001-027** Deprecate chart-rendering functionality in API class since RenderEngine class is now available. (Done in 0.4.7a)
 
 ### Planned
 
