@@ -152,6 +152,7 @@ class MarketSimulator:
         self.current_tick = 0
         self.periods = 0
         self.signal = signal
+        self.candle_retriever_thread = ThreadPool(processes=1)
         self.paused = False
 
     def get_candle_cluster(self):
@@ -179,7 +180,8 @@ class MarketSimulator:
         next_candle_time = self.current_candle.time + timedelta(seconds=candlex[self.current_candle.gran])
         if self.current_time > next_candle_time:
             self.__update_price(self.current_candle, is_close=True)
-            self.current_candle = self.__get_candle_at_time(current_macro_candle, self.current_time)
+            current_candle_future = self.candle_retriever_thread.apply_async(self.__get_candle_at_time, (current_macro_candle, self.current_time))
+            self.current_candle = current_candle_future.get()
             self.__update_price(self.current_candle, is_open=True)
             print(
                 f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}',
@@ -208,8 +210,6 @@ class MarketSimulator:
             # While the current time of the simulation is less than that of the macro candle's close, the simulation will loop
             # and update the market price according to the historic data.
             while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
-                if self.paused:
-                    continue
                 self._do_tick(current_macro_candle)
 
 

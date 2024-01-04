@@ -11,7 +11,6 @@
 - **043-009-023** Implement __getitem__ method for Indicator classes. (Priority: low)
 - **045-001-024** Figure out how Ichimoku works and implement it. (Priority: low)
 - **046-002-026** Add metadata to each indicator class to make it easier to build charts. (Priority: medium)
-- **050-001-028** Add parallel processing to get_candles() method when retrieving candles from the API. (Priority: high)
 - **050-002-029** Add parallel processing to indicator update methods. (Priority: high)
 
 ### Done
@@ -31,10 +30,11 @@ will add more in the future most likely. (Done in 0.4.3a)
 - **040-001-008** Deprecate stats.py and refactor references to it. (Done in 0.4.5a)
 - **043-006-020** Add functionality in get_candles() _from and to parameters to accept
 integers as arguments. (Done in 0.4.5a)
-- - **046-001-025** Add render.py module to handle rendering charts and add RenderEngine class. Add functionality
+- **046-001-025** Add render.py module to handle rendering charts and add RenderEngine class. Add functionality
 for RenderEngine to easily build and construct charts using CandleStick and indicator data. (Done in 0.4.6a)
-- - **047-001-027** Deprecate chart-rendering functionality in API class since RenderEngine class is now available. (Done in 0.4.7a)
-
+- **047-001-027** Deprecate chart-rendering functionality in API class since RenderEngine class is now available. (Done in 0.4.7a)
+- **050-001-028** Add parallel processing to get_candles() method. Rather than adding parallel processing to the get_candles() itself,
+multithreading features were implemented in the MarketSimulator class for the backtester. (Done in 0.5.1a)
 ### Planned
 
 

@@ -3,11 +3,17 @@
 ---
 # Alpha ##
 
-## December 2023 ####
+## January 2024 ##
 
-### 0.5.0a - 3 January 2024 ###
+### 0.5.1a - 3 January 2024 ###
+- Implemented parallel processing for calls to the __get_candle_at_time() method in the MarketSimulator class. This should considerably
+speed up execution of the market simulation. (TD-50.1.28)
+
+### 0.5.0a ###
 - Added default colors to indicators. For indicators that are just lines, the default is randomly generated.
 For indicators that have multiple traces (such as MACD), the default colors are blue and red and green.
+
+## December 2023 ##
 
 ### 0.4.7a - 29 December 2023 ###
 - Deprecated chart rendering functionality in API class since it was moved to RenderEngine class. (TD-47.1.27)
