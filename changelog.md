@@ -5,6 +5,10 @@
 
 ## December 2023 ####
 
+### 0.5.0a - 3 January 2024 ###
+- Added default colors to indicators. For indicators that are just lines, the default is randomly generated.
+For indicators that have multiple traces (such as MACD), the default colors are blue and red and green.
+
 ### 0.4.7a - 29 December 2023 ###
 - Deprecated chart rendering functionality in API class since it was moved to RenderEngine class. (TD-47.1.27)
 - Added histogram plotting functionality to the RenderEngine, allowing MACD and other indicators to be plotted.

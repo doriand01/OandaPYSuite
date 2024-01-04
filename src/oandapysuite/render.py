@@ -95,7 +95,7 @@ class RenderEngine:
                             x=indicator.data['x'],
                             y=indicator.data[y_str],
                             name=indicator.indicator_id,
-                            marker_color=indicator.color
+                            marker_color=indicator.colors[y_str]
                         ),
                         row=(int(row)),
                         col=(int(col)),
@@ -107,7 +107,7 @@ class RenderEngine:
                             y=indicator.data[y_str],
                             name=indicator.indicator_id,
                             mode='lines',
-                            line=dict(color=indicator.color)
+                            line=dict(color=indicator.colors[y_str])
                         ),
                         row=(int(row)),
                         col=(int(col)),

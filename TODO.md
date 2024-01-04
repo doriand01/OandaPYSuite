@@ -11,6 +11,8 @@
 - **043-009-023** Implement __getitem__ method for Indicator classes. (Priority: low)
 - **045-001-024** Figure out how Ichimoku works and implement it. (Priority: low)
 - **046-002-026** Add metadata to each indicator class to make it easier to build charts. (Priority: medium)
+- **050-001-028** Add parallel processing to get_candles() method when retrieving candles from the API. (Priority: high)
+- **050-002-029** Add parallel processing to indicator update methods. (Priority: high)
 
 ### Done
 - **035-001-001** Refactor `add_candle()` method of `BaseIndicator` classes to `update()` (Done in 0.3.5a)

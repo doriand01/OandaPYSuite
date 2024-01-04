@@ -258,6 +258,7 @@ class TestAPI(unittest.TestCase):
         # Assert that the indicators have data after data has been loaded and that the data types are correct
         for indicator in indicators:
             for row in indicator.data.iterrows():
+                pass
                 self.assertIsInstance(row[1]['y'], float)
                 self.assertIsInstance(row[1]['x'], datetime)
 

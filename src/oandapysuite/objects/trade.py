@@ -4,6 +4,7 @@ from oandapysuite.objects.datatypes import candlex
 from oandapysuite.objects.indicators import BaseIndicator
 from oandapysuite.objects.signals import BaseSignal
 
+from multiprocessing.pool import ThreadPool
 from datetime import datetime, timedelta
 from random import random
 from time import sleep

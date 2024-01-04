@@ -3,6 +3,7 @@ from oandapysuite.exceptions import IndicatorOptionsError
 
 import math
 import decimal
+from random import randint
 
 import numpy as np
 from pandas import DataFrame, Series
@@ -37,6 +38,9 @@ class BaseIndicator:
         """
         self.data = DataFrame(data={})
 
+    def _generate_random_color(self):
+        return f'#{randint(0, 0xFFFFFF):06x}'
+
     def _validate_options(self, options: dict):
         if not all([required_option in options.keys() for required_option in self.required_options]):
             raise IndicatorOptionsError(f'{self.__class__.__name__}, requires the options {" "}{", ".join(list(self.required_options))}')
@@ -53,6 +57,9 @@ class BaseIndicator:
             setattr(self, key, value)
         self.is_subplot = False
         self.y_count = 1
+        self.colors = {
+            'y' : self._generate_random_color()
+        }
         self.options = options
         self.data = DataFrame(
                 data={

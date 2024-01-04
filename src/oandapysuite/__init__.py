@@ -4,6 +4,7 @@ from oandapysuite import api
 from oandapysuite import endpoints
 from oandapysuite import objects
 from oandapysuite import render
+from oandapysuite import utils
 
 
 

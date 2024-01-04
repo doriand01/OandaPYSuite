@@ -80,6 +80,10 @@ class ParabolicSAR(BaseIndicator):
         super().__init__(**options)
         self.is_subplot = False
         self.y_count = 2
+        self.colors = {
+            'y1' : 'red',
+            'y2' : 'green'
+        }
         self.indicator_id = 'parabolic_sar'
 
     def is_psar_up(self):
@@ -123,6 +127,11 @@ class MovingAverageConvergenceDivergence(BaseIndicator):
         super().__init__(**options)
         self.is_subplot = True
         self.y_count = 3
+        self.colors = {
+            'y1' : 'red',
+            'y2' : 'green',
+            'y3' : 'blue'
+        }
         self.indicator_id = 'moving_average_convergence_divergence'
         self.histogram = 'y3'
 
