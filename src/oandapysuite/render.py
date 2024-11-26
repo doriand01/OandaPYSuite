@@ -41,10 +41,6 @@ class PlotterGrid:
         return self.indicator_index[indicator_id]
 
 
-
-
-
-
 class RenderEngine:
 
     @staticmethod
@@ -112,6 +108,17 @@ class RenderEngine:
                         row=(int(row)),
                         col=(int(col)),
                     )
+        for signal in self.signals:
+            signal_data = signal.generate_signals_for_candle_cluster(self.window)
+            for point_x, point_y in zip(signal_data['x'], signal_data['y']):
+                if point_y == 1:
+                    self.fig.add_vline(x=point_x, line_color="green")
+                if point_y == 2:
+                    self.fig.add_vline(x=point_x, line_width=3, line_dash="dash", line_color="green")
+                if point_y == 3:
+                    self.fig.add_vline(x=point_x, line_color="red")
+                if point_y == 4:
+                    self.fig.add_vline(x=point_x, line_width=3, line_dash="dash", line_color="red")
         self.fig.update_layout(
             xaxis_rangeslider_visible=False,
             yaxis={'fixedrange': False},
@@ -137,8 +144,16 @@ class RenderEngine:
         label = label or indicator.indicator_id
         if indicator.is_subplot:
             self.num_subplots += 1
-        self.indicators[label] = indicator
-        self.indicators[label].update(self.window)
+        if label in self.indicators.keys():
+            diff_label = f'{label}_{len(self.indicators.keys())}'
+            self.indicators[diff_label] = indicator
+            self.indicators[diff_label].update(self.window)
+        else:
+            self.indicators[label] = indicator
+            self.indicators[label].update(self.window)
+
+    def add_signal(self, signal, label=None):
+        self.signals.append(signal)
 
     def set_chart_type(self, chart_type):
         if chart_type not in ['candlestick', 'ohlc']:

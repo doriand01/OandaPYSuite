@@ -16,3 +16,33 @@ REQUEST_PREFIX = f'{DEMO_API_ENDPOINT if DEMO_MODE == True else LIVE_API_ENDPOIN
 
 # Used to parse out dates and times when instantiating the UnixTime object.
 DATETIME_REGEX = '(?P<hhmmss>\d{2}:\d{2}(?::\d{2})*)|(\d{4}[ -]\d{1,2}[ -]\d{1,2}(\s{1}(?P=hhmmss))?)'
+
+INDICATOR_ALIASES = {
+    'ExponentialMovingAverage' : 'oandapysuite.objects.indicators.trend.ExponentialMovingAverage',
+    'SimpleMovingAverage'      : 'oandapysuite.objects.indicators.trend.SimpleMovingAverage',
+    'TRIX'                     : 'oandapysuite.objects.indicators.trend.TRIX',
+    'AverageDirectionalMovementIndex' : 'oandapysuite.objects.indicators.trend.AverageDirectionalMovementIndex',
+    'ParabolicSAR'             : 'oandapysuite.objects.indicators.trend.ParabolicSAR',
+    'DetrendedPriceOscillator' : 'oandapysuite.objects.indicators.trend.DetrendedPriceOscillator',
+    'MACD'                     : 'oandapysuite.objects.indicators.trend.MovingAverageConvergenceDivergence',
+    'AwesomeOscillator'        : 'oandapysuite.objects.indicators.momentum.AwesomeOscillator',
+    'PercentagePriceOscillator': 'oandapysuite.objects.indicators.momentum.PercentagePriceOscillator',
+    'RateOfChange'             : 'oandapysuite.objects.indicators.momentum.RateOfChange',
+    'RelativeStrengthIndex'    : 'oandapysuite.objects.indicators.momentum.RelativeStrengthIndex',
+    'StochasticOscillator'     : 'oandapysuite.objects.indicators.momentum.StochasticOscillator',
+    'TrueStrengthIndex'        : 'oandapysuite.objects.indicators.momentum.TrueStrengthIndex',
+    'KAMA'                     : 'oandapysuite.objects.indicators.momentum.KAMA',
+    'StochasticRSI'            : 'oandapysuite.objects.indicators.momentum.StochasticRSI',
+    'UltimateOscillator'       : 'oandapysuite.objects.indicators.momentum.UltimateOscillator',
+    'WilliamsR'                : 'oandapysuite.objects.indicators.momentum.WilliamsR',
+    'SampleStandardDeviation'  : 'oandapysuite.objects.indicators.volatility.SampleStandardDeviation',
+    'BollingerBands'           : 'oandapysuite.objects.indicators.volatility.BollingerBands',
+    'KeltnerChannels'          : 'oandapysuite.objects.indicators.volatility.KeltnerChannels',
+    'UlcerIndex'              : 'oandapysuite.objects.indicators.volatility.UlcerIndex',
+    'AverageTrueRange'         : 'oandapysuite.objects.indicators.volatility.AverageTrueRange',
+    'DonchianChannels'         : 'oandapysuite.objects.indicators.volatility.DonchianChannels',
+
+
+
+
+}

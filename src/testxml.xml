@@ -1,0 +1,42 @@
+<Signal>
+    <Indicator name="ExponentialMovingAverage" period="10" id="ema1">
+        <Setting name="period">10</Setting>
+        <Setting name="on">close</Setting>
+    </Indicator>
+    <Indicator name="ExponentialMovingAverage" period="20" id="ema2">
+        <Setting name="period">20</Setting>
+        <Setting name="on">close</Setting>
+    </Indicator>
+    <LogicalUnit id="1">
+        <Condition type="GreaterThan">
+            <LeftOperand id="ema1"/>
+            <RightOperand id="ema2"/>
+        </Condition>
+        <Condition type="GreaterThan">
+            <LeftOperand id="price"/>
+            <RightOperand id="ema1"/>
+        </Condition>
+    </LogicalUnit>
+    <LogicalUnit id="2">
+        <Condition type="LessThan">
+            <LeftOperand id="ema1"/>
+            <RightOperand id="ema2"/>
+        </Condition>
+        <Condition type="LessThan">
+            <LeftOperand id="price"/>
+            <RightOperand id="ema1"/>
+        </Condition>
+    </LogicalUnit>
+    <EntryLong>
+        <True id="1"/>
+    </EntryLong>
+    <ExitLong>
+        <False id="1"/>
+    </ExitLong>
+    <EntryShort>
+        <True id="2"/>
+    </EntryShort>
+    <ExitShort>
+        <False id="2"/>
+    </ExitShort>
+</Signal>

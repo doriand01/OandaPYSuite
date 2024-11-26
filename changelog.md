@@ -3,7 +3,16 @@
 ---
 # Alpha ##
 
+## November 2024 ##
+
+### 0.6.0a - 26 November 2024 ###
+
+- Added `SignalFromXML` class to `signals` module. This class allows you to create signals from XML files.
+
 ## January 2024 ##
+
+### 0.5.2a - 5 January 2024 ###
+
 
 ### 0.5.1a - 3 January 2024 ###
 - Implemented parallel processing for calls to the __get_candle_at_time() method in the MarketSimulator class. This should considerably

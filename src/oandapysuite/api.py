@@ -46,8 +46,74 @@ class API:
         # the market. The default for the API.get_candles() function is 500. The second way to determine candlestick
         # range is by time. Two unix times can be specified (a from value and a two value) and all candlesticks that
         # fall between the two times (Unix Epoch timestamp) will be retrieved.
-        if count:
+
+
+        # The OANDA API can only retrieve 5000 candles per request. Therefore, when count is specified as a parameter,
+        # it must be checked to see if it is greater than 5000. If it is, the function will make multiple requests to
+        # the API to retrieve all the candles in the specified range. These requests are broken up into chunks of 5000
+        # candles each, and the function will return a CandleCluster object containing all the candles in the specified
+        # range. It must be noted that providing a value of 5,000 candles will only return all candles for the most
+        # recent X periods specified. This means that if the specified time range falls within a period where the market
+        # is closed (ie. there are no candles for that period), the function will return less than the requested amount
+        # of candles.
+        if count and count < 5000:
             response = get(instrument.Instrument.get_candles(ins,gran, count=count),headers=self.auth_header)
+            if response.status_code != 200:
+                raise exceptions.APIError(response.status_code,response.text)
+
+
+        elif count > 5000:
+            # Create a dictionary that stores the start and end timestamps of each of the chunks.
+            chunks_datetimes = {}
+            chunks = count // 5000
+
+            # Calculate the remainder of the count divided by 5000 to determine how many periods are left over after
+            # the chunks are retrieved.
+            remainder = count % 5000
+
+            # Retrieve the first 5000 candles.
+            first_5000_response = get(instrument.Instrument.get_candles(ins, gran, count=5000), headers=self.auth_header)
+
+            # The final candle cluster object is instantiated with the first 5,000 candles.
+            final_candles = CandleCluster(first_5000_response.text)
+
+            # This for loop iterates over the chunk dictionary, retrieving candles for the specified period for each
+            # chunk. The candles are then concatenated to the final_candles object.
+            for i in range(chunks):
+
+                # Skip the first iteration, as the first 5000 candles have already been retrieved.
+                if i == 0:
+                    continue
+                else:
+                    # Calculate the start and end timestamps for each chunk.
+                    if i == 1:
+                        chunk_end = int(final_candles[0].time.timestamp())
+                    elif i > 1:
+                        chunk_end = chunks_datetimes[i-1][0]
+                    chunk_start = int(chunk_end - 5000 * candlex[gran])
+                    chunks_datetimes[i] = (chunk_start, chunk_end)
+
+            for chunk in chunks_datetimes.values():
+                # Create each chunk of candles and concatenate them to the final_candles object.
+                response = get(instrument.Instrument.get_candles(ins, gran, from_time=UnixTime(chunk[0]), to_time=UnixTime(chunk[1])), headers=self.auth_header)
+                chunk_candles = CandleCluster(response.text)
+                final_candles = chunk_candles + final_candles
+
+            # After the chunks have all been retrieved, the remainder candles are retrieved and concatenated to the
+            # final_candles object.
+            remainder_chunk_start = int(final_candles[0].time.timestamp() - (remainder * candlex[gran]))
+            remainder_chunk_end = int(final_candles[0].time.timestamp())
+            response = get(instrument.Instrument.get_candles(ins, gran, from_time=UnixTime(remainder_chunk_start), to_time=UnixTime(remainder_chunk_end)), headers=self.auth_header)
+            remainder_candles = CandleCluster(response.text)
+            if len(remainder_candles) == 0:
+                return final_candles
+            else:
+                final_candles = remainder_candles + final_candles
+                return final_candles
+
+
+
+
         else:
             if type(start) == int and type(end) == int:
                 start_dt_obj = datetime.now() - timedelta(seconds=start*candlex[gran])
@@ -58,8 +124,6 @@ class API:
             elif type(start) == UnixTime and type(end) == UnixTime:
                 response = get(instrument.Instrument.get_candles(ins, gran, from_time=start, to_time=end), headers=self.auth_header)
 
-        if response.status_code != 200:
-            raise exceptions.APIError(response.status_code,response.text)
         return CandleCluster(response.text)
 
     def load_accounts(self):

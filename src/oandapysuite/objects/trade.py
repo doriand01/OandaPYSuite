@@ -14,6 +14,8 @@ from copy import deepcopy
 
 import asyncio
 import abc
+import csv
+import os
 
 
 class Account:
@@ -124,7 +126,6 @@ class MarketSimulator:
             api_object,
             speed_factor=1.0,
             ticks_per_second=20,
-            generate_for='S5',
             signal: BaseSignal = None):
         """
         Creates the MarketSimulator.
@@ -140,6 +141,7 @@ class MarketSimulator:
 
         """
         self.window = window
+        self.current_candle_index = 0
         self.candles_dict = {}
         self.start_time = self.window[0].time
         self.current_time = self.window[0].time
@@ -148,7 +150,6 @@ class MarketSimulator:
         self.tps = ticks_per_second
         self.speed_factor = speed_factor
         self.candle_cache = {}  # Cache for storing fetched candle data
-        self.generate_for = generate_for
         self.current_tick = 0
         self.periods = 0
         self.signal = signal
@@ -174,14 +175,15 @@ class MarketSimulator:
 
 
 
-    def _do_tick(self, current_macro_candle):
+    def _do_tick(self):
         # If the current time is greater than the current candle's closing (meaning that the current candle has closed)
         # the next candle is fetched using the __get_candle_at_time() method.
-        next_candle_time = self.current_candle.time + timedelta(seconds=candlex[self.current_candle.gran])
+        next_candle_time = self.window[self.current_candle_index + 1].time
         if self.current_time > next_candle_time:
             self.__update_price(self.current_candle, is_close=True)
-            current_candle_future = self.candle_retriever_thread.apply_async(self.__get_candle_at_time, (current_macro_candle, self.current_time))
-            self.current_candle = current_candle_future.get()
+            self.current_candle_index += 1
+            self.periods += 1
+            self.current_candle = self.window[self.current_candle_index]
             self.__update_price(self.current_candle, is_open=True)
             print(
                 f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}',
@@ -194,7 +196,6 @@ class MarketSimulator:
         sleep_interval = 1 / self.tps
         sleep(sleep_interval)
         self.current_tick += 1
-        self.periods = len(list(self.candles_dict.values()))
 
 
     def run(self):
@@ -204,13 +205,11 @@ class MarketSimulator:
 
         # This loop iterates over every candle in the provided historic data. The topmost level candle is called the
         # `macro candle`.
-        for i in range(len(self.window)):
-            current_macro_candle = self.window[i]
-
-            # While the current time of the simulation is less than that of the macro candle's close, the simulation will loop
-            # and update the market price according to the historic data.
-            while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
-                self._do_tick(current_macro_candle)
+        try:
+            while True:
+                self._do_tick()
+        except KeyboardInterrupt:
+            print(f'Exiting simulation at {self.current_time}')
 
 
 class Backtester(MarketSimulator):
@@ -218,51 +217,68 @@ class Backtester(MarketSimulator):
     def __enter_trade(self, trade_type):
         self.trade_type = trade_type
         self.entry_price = self.current_price
+        self.entry_time = self.current_time
+        self.equity_curve.append(self.equity_curve[-1])  # Append the current equity for drawdown calculation
 
     def __exit_trade(self):
         self.entry_price = 0
         self.trade_type = 0
 
+    def __log_trade(self, exit_price, profit, movement_in_pips):
+        trade_details = {
+            'time_opened': self.entry_time,
+            'time_closed': self.current_time,
+            'entry_price': self.entry_price,
+            'exit_price': exit_price,
+            'movement_in_pips': movement_in_pips,
+            'profit_in_pips': profit
+        }
+        self.trade_log.append(trade_details)
+
     def __check_signal(self):
-        candle_cluster = CandleCluster(cand_list=list(self.candles_dict.values()))
+        candle_cluster = CandleCluster(cand_list=list(self.window.candles.iloc[:self.current_candle_index+1])) # Add one to include the current candle
         sig_val = self.signal.get_signal(self.current_candle, cluster=candle_cluster)
         if self.trade_type == 0:
             if sig_val == 1:
                 print(f'''Entering long @ {self.current_price}, time: {self.current_time} '''
                       f'''TP:{self.signal.take_profit}, SL:{self.signal.stop_loss}''')
-                self.entry_price = Decimal(self.current_price)
                 self.__enter_trade(trade_type=1)
-            if sig_val == 3:
+            elif sig_val == 3:
                 print(f'''Entering short @ {self.current_price}, time: {self.current_time},''' 
                 f'''TP:{self.signal.take_profit}, SL:{self.signal.stop_loss}''')
-                self.entry_price = Decimal(self.current_price)
                 self.__enter_trade(trade_type=3)
-        # Consider refactoring to reduce nesting.
-        if self.trade_type != 0:
+        else:
             if self.trade_type == 1 and sig_val == 2:
-                print(f'''Exiting long, price:{self.current_price}  time: {self.current_time},''' 
-                f'''profit:{(self.current_price-self.entry_price)*10000}''')
-                self.trades.append((self.current_price - self.entry_price))
+                profit = (self.current_price - self.entry_price) * 10000
+                movement_in_pips = (self.current_price - self.entry_price) * 10000
+                print(f'''Exiting long, price:{self.current_price}  time: {self.current_time}, profit:{profit}''')
+                self.trades.append(profit)
+                self.equity_curve.append(self.equity_curve[-1] + profit)
+                self.__log_trade(self.current_price, profit, movement_in_pips)
                 self.__exit_trade()
-            if self.trade_type == 3 and sig_val == 4:
-                print(f'''Exiting short, price:{self.current_price}  time: {self.current_time},''' 
-                f'''profit:{(self.entry_price-self.current_price)*10000}''')
-                self.trades.append((self.entry_price - self.current_price))
+            elif self.trade_type == 3 and sig_val == 4:
+                profit = (self.entry_price - self.current_price) * 10000
+                movement_in_pips = (self.entry_price - self.current_price) * 10000
+                print(f'''Exiting short, price:{self.current_price}  time: {self.current_time}, profit:{profit}''')
+                self.trades.append(profit)
+                self.equity_curve.append(self.equity_curve[-1] + profit)
+                self.__log_trade(self.current_price, profit, movement_in_pips)
                 self.__exit_trade()
 
     def __update_price(self, candle, is_close=False, is_open=False):
-        pass
-        if is_close: self.current_price = candle.close
-        elif is_open: self.current_price = candle.open
+        if is_close:
+            self.current_price = candle.close
+        elif is_open:
+            self.current_price = candle.open
         else:
             up_or_down = [lambda: 1 if random() > .5 else Decimal(-1.2), lambda: Decimal(1.2) if random() > .5 else -1][candle.open > candle.close]
-            self.current_price += up_or_down() * ((candle.high-candle.low) * Decimal(ceil(random()*20)*5/200))
-            if self.current_price > candle.high: self.current_price = candle.high
-            elif self.current_price < candle.low: self.current_price = candle.low
-
+            self.current_price += up_or_down() * ((candle.high - candle.low) * Decimal(ceil(random() * 20) * 5 / 200))
+            if self.current_price > candle.high:
+                self.current_price = candle.high
+            elif self.current_price < candle.low:
+                self.current_price = candle.low
 
     def __get_candle_at_time(self, candle, target_time):
-        pass
         if candle.gran == self.generate_for:
             adjusted_candle = deepcopy(candle)
             adjusted_candle.close = self.current_price
@@ -270,7 +286,7 @@ class Backtester(MarketSimulator):
         if candle.has_lower_timeframe():
             lower_timeframe = candle.get_lower_timeframe()
             cache_key = (candle.gran, candle.time)
-            if abs(self.speed_factor/self.tps) > candlex[lower_timeframe]/4:
+            if abs(self.speed_factor / self.tps) > candlex[lower_timeframe] / 4:
                 return candle
             if cache_key in self.candle_cache:
                 children = self.candle_cache[cache_key]
@@ -280,40 +296,85 @@ class Backtester(MarketSimulator):
             for cand in reversed(children.candles):
                 if target_time < cand.time:
                     continue
-
                 if cand.has_lower_timeframe():
                     return self.__get_candle_at_time(cand, target_time)
         return candle
 
-    def __init__(
-            self,
-            window,
-            api_object,
-            speed_factor: float = 1.0,
-            ticks_per_second: int = 20,
-            generate_for: str = 'M1',
-            signal: BaseSignal = None):
-        super().__init__(window, api_object, speed_factor=speed_factor, ticks_per_second=ticks_per_second, generate_for=generate_for, signal=signal)
-        self.current_candle = self.__get_candle_at_time(window[0], self.current_time)
+    def __init__(self, window, api_object, speed_factor: float = 1.0, ticks_per_second: int = 20, generate_for: str = 'M1', signal: BaseSignal = None):
+        super().__init__(window, api_object, speed_factor=speed_factor, ticks_per_second=ticks_per_second, signal=signal)
+        self.current_candle = self.window[0]
         self.signal = signal
         self.generate_for = generate_for
         self.entry_price = 0
+        self.entry_time = None
         self.trade_type = 0
         self.trades = []
+        self.equity_curve = [10000]  # Starting equity
+        self.trade_log = []  # List to store trade details
 
-    def _do_tick(self, current_macro_candle):
-        super()._do_tick(current_macro_candle)
-        pass
+    def _do_tick(self):
+        super()._do_tick()
         if self.periods > self.signal.max_period:
-            pass
             self.__check_signal()
 
     def run(self):
         try:
-            for i in range(len(self.window)):
-                current_macro_candle = self.window[i]
-                while self.current_time < current_macro_candle.time + timedelta(seconds=candlex[current_macro_candle.gran]):
-                    self._do_tick(current_macro_candle)
+            while True:
+                    self._do_tick()
+                    print(f'price:{self.current_price}, tickno.:{self.current_tick}, pds:{self.periods} time:{self.current_time}', end="\r", flush=True)
         except KeyboardInterrupt:
             print(f'Exiting simulation at {self.current_time}')
-            print(f'Average trade: {sum(self.trades)/len(self.trades)}')
+            self._calculate_statistics()
+            self._output_trade_log()
+
+    def _calculate_statistics(self):
+        drawdowns = []
+        peak = self.equity_curve[0]
+        max_drawdown = 0
+        max_drawdown_duration = 0
+        drawdown_duration = 0
+
+        for equity in self.equity_curve:
+            if equity > peak:
+                peak = equity
+                if drawdown_duration > 0:
+                    drawdowns.append(drawdown_duration)
+                drawdown_duration = 0
+            else:
+                drawdown_duration += 1
+                drawdown = (peak - equity) / peak
+                if drawdown > max_drawdown:
+                    max_drawdown = drawdown
+                drawdowns.append(Decimal(drawdown))
+
+        avg_drawdown = sum(drawdowns) / len(drawdowns) if drawdowns else 0
+        max_drawdown_percentage = max_drawdown * 100
+        avg_drawdown_percentage = avg_drawdown * 100
+        avg_drawdown_period = sum(drawdowns) / len(drawdowns) if drawdowns else 0
+        max_drawdown_period = max(drawdowns) if drawdowns else 0
+
+        wins = [trade for trade in self.trades if trade > 0]
+        losses = [trade for trade in self.trades if trade < 0]
+        win_ratio = len(wins) / len(self.trades) if self.trades else 0
+        max_win = max(wins) if wins else 0
+        avg_win = sum(wins) / len(wins) if wins else 0
+        max_win_percentage = (max_win / self.equity_curve[0]) * 100
+        avg_win_percentage = (avg_win / self.equity_curve[0]) * 100
+
+        print(f'Average Drawdown Percentage: {avg_drawdown_percentage:.2f}%')
+        print(f'Max Drawdown Percentage: {max_drawdown_percentage:.2f}%')
+        print(f'Average Drawdown Period: {avg_drawdown_period}')
+        print(f'Max Drawdown Period: {max_drawdown_period}')
+        print(f'Equity Curve: {self.equity_curve}')
+        print(f'Win Ratio: {win_ratio:.2f}')
+        print(f'Max Win Percentage: {max_win_percentage:.2f}%')
+        print(f'Average Win Percentage: {avg_win_percentage:.2f}%')
+
+    def _output_trade_log(self):
+        log_file = 'trade_log.csv'
+        with open(log_file, mode='w', newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=['time_opened', 'time_closed', 'entry_price', 'exit_price', 'movement_in_pips', 'profit_in_pips'])
+            writer.writeheader()
+            for trade in self.trade_log:
+                writer.writerow(trade)
+        print(f'Trade log saved to {log_file}')

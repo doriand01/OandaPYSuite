@@ -12,6 +12,7 @@
 - **045-001-024** Figure out how Ichimoku works and implement it. (Priority: low)
 - **046-002-026** Add metadata to each indicator class to make it easier to build charts. (Priority: medium)
 - **050-002-029** Add parallel processing to indicator update methods. (Priority: high)
+- **052-001-030** Figure out workaround for executing indicator.update() methods with the multiprocessing module. (Priority: high)
 
 ### Done
 - **035-001-001** Refactor `add_candle()` method of `BaseIndicator` classes to `update()` (Done in 0.3.5a)
@@ -35,6 +36,8 @@ for RenderEngine to easily build and construct charts using CandleStick and indi
 - **047-001-027** Deprecate chart-rendering functionality in API class since RenderEngine class is now available. (Done in 0.4.7a)
 - **050-001-028** Add parallel processing to get_candles() method. Rather than adding parallel processing to the get_candles() itself,
 multithreading features were implemented in the MarketSimulator class for the backtester. (Done in 0.5.1a)
+
+
 ### Planned
 
 
@@ -49,27 +52,21 @@ multithreading features were implemented in the MarketSimulator class for the ba
 ### 003 ###
 - Using the API's `get_child_candles()` method to retrieve children candles on a Candle that has not yet closed will result in a 
 in an APIError with the following message "Invalid value specified for 'to'. The time is in the future".
-- Last known version affected: 0.4.6a
 
 ### 004 ###
 - There's a discrepancy between requested datetimes and return datetimes with the UnixTime object. 
 this is most likely due to timezone offset between local time and UTC time.
-- Last known version affected: 0.4.6a
 
 ### 005 ###
 - DST change in March and November each year breaks datetime representation for candles. This is because the API returns candles
 based on UTC time, and the UnixTime object converts the local time to UTC. Major bug with cascading effects. on every
 function that relies on the UnixTime object, as well as time calculations and precision.
-- Last known version affected: 0.4.6a
 
 ### 006 ###
 - test_indicators test case fails. Need to fix this.
-- Last known version affected: 0.4.6a
 
 ### 007 ###
 - get_candles() has issues when indexing by integer.
-- Last known version affected: 0.4.6a
-
 
 ---
 

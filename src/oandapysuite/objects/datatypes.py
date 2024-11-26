@@ -36,7 +36,7 @@ class UnixTime:
         * Providing yyyy-mm-dd without hours and minutes will assume 00:00 on that date, and will
         get the candle for midnight.
         """
-        if  type(time_string) == int or time_string.isdigit():
+        if type(time_string) == int or time_string.isdigit():
             self.string_repr = str(time_string)
             self.datetime_repr = datetime.datetime.fromtimestamp(int(time_string))
             self.timestamp = self.datetime_repr.timestamp()
@@ -63,7 +63,7 @@ class UnixTime:
             # a specific time provided.
             else:
                 self.datetime_repr = datetime.datetime.strptime(f'{time_string}', '%Y-%m-%d')
-# If the length of the generated list `time_string_parsed_groups` is 2, then it contains both a specific date
+        # If the length of the generated list `time_string_parsed_groups` is 2, then it contains both a specific date
         # AND a specific time, and a datetime object (stored in self.datetime_repr) with this date and time are created.
         elif len(time_string_parsed_groups) == 2:
             date = time_string_parsed_groups[0].replace(' ', '-')

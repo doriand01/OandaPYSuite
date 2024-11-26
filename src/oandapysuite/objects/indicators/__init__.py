@@ -56,10 +56,16 @@ class BaseIndicator:
         for key, value in options.items():
             setattr(self, key, value)
         self.is_subplot = False
-        self.y_count = 1
-        self.colors = {
-            'y' : self._generate_random_color()
-        }
+        self.y_count = self.y_count if hasattr(self, 'y_count') else 1
+        if self.y_count > 1:
+            color = self._generate_random_color()
+            self.colors = {
+                f'y{i+1}' : color for i in range(self.y_count)
+            }
+        elif self.y_count == 1:
+            self.colors = {
+                'y' : self._generate_random_color()
+            }
         self.options = options
         self.data = DataFrame(
                 data={
