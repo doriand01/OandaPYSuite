@@ -2,7 +2,7 @@ from oandapysuite.exceptions import HighestGranularityException, LowestGranulari
 from oandapysuite.objects.datatypes import candlex
 
 import json
-import decimal
+
 from datetime import datetime, timedelta
 from pytz.reference import LocalTimezone
 from time import timezone
@@ -11,8 +11,8 @@ from copy import deepcopy
 from pandas import DataFrame, Series, concat
 from numpy import float64
 
-D = decimal.Decimal
-decimal.getcontext().prec = 6
+
+
 time_format = '%Y-%m-%dT%X'
 
 
@@ -32,10 +32,10 @@ class CandleCluster:
 
         def __init__(self, candledata, ins, gran):
             global time_format
-            self.open = D(candledata['mid']['o'])
-            self.close = D(candledata['mid']['c'])
-            self.low = D(candledata['mid']['l'])
-            self.high = D(candledata['mid']['h'])
+            self.open = float(candledata['mid']['o'])
+            self.close = float(candledata['mid']['c'])
+            self.low = float(candledata['mid']['l'])
+            self.high = float(candledata['mid']['h'])
             self.oc_displacement = self.close - self.open
             self.total_displacement = self.high - self.low
             self.complete = True if candledata['complete'] == 'true' else False
@@ -155,9 +155,7 @@ class CandleCluster:
         data = []
         for prop in properties:
             data = data + [getattr(candle, prop) for candle in self.candles]
-            for i in range(len(data)):
-                if type(data[i]) == D:
-                    data[i] = float64(data[i])
+
         return Series(data)
 
     def to_dataframe(self):

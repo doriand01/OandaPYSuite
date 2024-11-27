@@ -34,4 +34,13 @@ def run_as_process_for_instance_method(func):
         return process
     return wrapper
 
-
+def to_float_or_int_or_str(value):
+    """
+    Convert a string to a float or int.
+    """
+    if '.' in value and all([c.isdigit() for c in value.split('.')]):
+        return float(value)
+    elif '.' not in value and all([c.isdigit() for c in value]):
+        return int(value)
+    elif any([not c.isdigit() for c in value]):
+        return value

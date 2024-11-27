@@ -12,9 +12,9 @@ def main():
     bollinger = oandapysuite.objects.indicators.volatility.BollingerBands(on='close', period=24, std=.6, name='bollinger')
     atr = oandapysuite.objects.indicators.volatility.AverageTrueRange(period=12)
     signal = oandapysuite.objects.signals.SignalFromXML("C:\\Users\\preit\\OneDrive\\Desktop\\coding projects\\DorandaPy\\src\\testxml.xml")
-    sim = oandapysuite.objects.trade.Backtester(c, api, speed_factor=2000, ticks_per_second=40, signal=signal)
+    sim = oandapysuite.objects.trade.Backtester(c, api, speed_factor=60, signal=signal)
     sim.run()
-    print(sim.trades)
+    print(sim.equity_curve)
 
 if __name__ == '__main__':
     main()

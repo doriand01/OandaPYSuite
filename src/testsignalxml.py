@@ -2,4 +2,6 @@ import oandapysuite as opy
 import sys
 print(sys.path)
 
-a = opy.objects.signals.SignalFromXML('C:\\Users\\preit\\OneDrive\\Desktop\\coding projects\\DorandaPy\\src\\testxml.xml')
+a = opy.api.API()
+b = a.get_candles('GBP_USD', 'M5', count=24)
+print("hi")

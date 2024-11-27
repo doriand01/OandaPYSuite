@@ -1,7 +1,6 @@
 from oandapysuite.objects.indicators import BaseIndicator
 from oandapysuite import utils
 
-from decimal import Decimal
 from collections import deque
 
 import ta
@@ -25,78 +24,6 @@ class SimpleMovingAverage(BaseIndicator):
             'x'       : candle_cluster.history('time'),
             'y'       : simple_moving_average
         })
-
-class LegRange(BaseIndicator):
-
-    def __init__(self, **options):
-        self.required_options = ['lookback']
-        super().__init__(**options)
-        self.indicator_id = 'leg_range'
-
-    def _find_legs(self, candles, lookback: int):
-        legs = {'size': [], 'delta': [], 'time': []}
-        next_leg_index = 0
-        total_candles = len(candles.candles)
-
-        i = 0
-        while i < total_candles:
-            leg_size = 0
-            leg_delta = Decimal(0.0000)
-            leg_start_time = candles.candles[i].time
-
-            if candles.candles[i].close > candles.candles[i].open:
-                while i + next_leg_index < total_candles and candles.candles[i + next_leg_index].close > \
-                        candles.candles[i + next_leg_index].open:
-                    leg_size += 1
-                    leg_delta += candles.candles[i + next_leg_index].close - candles.candles[i + next_leg_index].open
-                    next_leg_index += 1
-            elif candles.candles[i].close < candles.candles[i].open:
-                while i + next_leg_index < total_candles and candles.candles[i + next_leg_index].close < \
-                        candles.candles[i + next_leg_index].open:
-                    leg_size += 1
-                    leg_delta += candles.candles[i + next_leg_index].close - candles.candles[i + next_leg_index].open
-                    next_leg_index += 1
-
-            if leg_size > 0:
-                legs['size'].append(leg_size)
-                legs['delta'].append(leg_delta)
-                legs['time'].append(i)
-
-            i += next_leg_index
-            next_leg_index = 1
-
-        legs_df = DataFrame(legs)
-
-        # Calculate the predicted delta per candle
-        predicted_deltas = []
-        pos_leg_deltas = deque(maxlen=lookback)
-        neg_leg_deltas = deque(maxlen=lookback)
-        last_delta_start = 0
-        for i, candle in enumerate(candles.candles):
-            # Add current leg delta to the respective deque if it exists in legs_df
-            if i in legs_df['time'].values:
-                last_delta_start = i
-                leg_delta = legs_df.loc[legs_df['time'] == i, 'delta'].values[0]
-                if leg_delta > 0:
-                    pos_leg_deltas.append(leg_delta)
-                elif leg_delta < 0:
-                    neg_leg_deltas.append(leg_delta)
-
-            if len(pos_leg_deltas) > 0 and len(neg_leg_deltas) > 0:
-                pos_avg = sum(pos_leg_deltas) / len(pos_leg_deltas)
-                neg_avg = sum(neg_leg_deltas) / len(neg_leg_deltas)
-                if candle.close > candle.open:
-                    predicted_delta = pos_avg
-                elif candle.close < candle.open:
-                    predicted_delta = neg_avg
-            else:
-                if len(predicted_deltas) == 0:
-                    predicted_delta = Decimal(0.0000)
-                else:
-                    predicted_delta = candles[last_delta_start].close + predicted_deltas[-1] - candle.close
-
-            predicted_deltas.append(predicted_delta)
-        return Series(predicted_deltas)
 
     @utils.run_as_thread
     def update(self, candle_cluster):

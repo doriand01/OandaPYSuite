@@ -1,5 +1,3 @@
-import decimal
-
 from pandas import DataFrame, Series
 from numpy import nan, isnan
 
@@ -8,15 +6,14 @@ from math import e
 from oandapysuite.objects.instrument import CandleCluster
 from oandapysuite.exceptions import *
 from oandapysuite.settings import INDICATOR_ALIASES
+from oandapysuite.utils import to_float_or_int_or_str as tfis
 
-from decimal import Decimal
 from collections import deque
 from xml.etree import ElementTree as ET
 
 import importlib
 
 
-decimal.getcontext().prec = 5
 
 
 class BaseSignal:
@@ -51,25 +48,32 @@ class LogicalUnit:
     def __init__(self, conditions):
         self.conditions = []
         for condition in conditions:
-            i = 1
             self.conditions.append({
                 'type': condition.attrib['type'],
                 'left': condition.find('LeftOperand').attrib['id'],
                 'right': condition.find('RightOperand').attrib['id'],
             })
 
+            if 'select' in condition.find('LeftOperand').attrib.keys():
+                self.conditions[-1]['left_select'] = condition.find('LeftOperand').attrib['select']
+
+            if 'select' in condition.find('RightOperand').attrib.keys():
+                self.conditions[-1]['right_select'] = condition.find('RightOperand').attrib['select']
+
     def evaluate(self, indicators, price):
         all_conditions = []
         for condition in self.conditions:
+            left_selected = condition['left_select'] if 'left_select' in condition.keys() else 'y'
+            right_selected = condition['right_select'] if 'right_select' in condition.keys() else 'y'
             if condition['left'] == 'price':
                 left = price
-                right = indicators[condition['right']].data['y'].iloc[-1]
+                right = indicators[condition['right']].data[right_selected].iloc[-1]
             elif condition['right'] == 'price':
-                left = indicators[condition['left']].data['y'].iloc[-1]
+                left = indicators[condition['left']].data[left_selected].iloc[-1]
                 right = price
             else:
-                left = indicators[condition['left']].data['y'].iloc[-1]
-                right = indicators[condition['right']].data['y'].iloc[-1]
+                left = indicators[condition['left']].data[left_selected].iloc[-1]
+                right = indicators[condition['right']].data[right_selected].iloc[-1]
             if condition['type'] == 'GreaterThan':
                 all_conditions.append(left > right)
             elif condition['type'] == 'LessThan':
@@ -90,10 +94,7 @@ class SignalFromXML(BaseSignal):
             self.indicators_list.append(indicator.attrib['id'])
             settings = indicator.findall('Setting')
             for setting in settings:
-                if any(char.isdigit() for char in setting.text):
-                    settings_dict[setting.attrib['name']] = float(setting.text)
-                else:
-                    settings_dict[setting.attrib['name']] = setting.text
+                settings_dict[setting.attrib['name']] = tfis(setting.text)
             indicator_object = indicator_class(**settings_dict)
             indicators_dict[indicator.attrib['id']] = indicator_object
         return indicators_dict
@@ -118,45 +119,9 @@ class SignalFromXML(BaseSignal):
         super().__init__(**indicators)
         self.max_period = max([indicator.period for indicator in indicators.values() if hasattr(indicator, 'period')])
 
-    def __get_entry_long_signal(self, price):
+    def __evaluate_signal(self, signal, price):
         unit_states = []
-        entry_units = list(self.entry_long)
-        for unit in entry_units:
-            logical_unit = getattr(self, unit.attrib['id'])
-            indicator_dicts = {indicator: self.__dict__[indicator] for indicator in self.indicators_list}
-            if unit.tag == 'True':
-                unit_states.append(logical_unit.evaluate(indicator_dicts, price))
-            elif unit.tag == 'False':
-                unit_states.append(not logical_unit.evaluate(indicator_dicts, price))
-        return all(unit_states)
-
-    def __get_entry_short_signal(self, price):
-        unit_states = []
-        entry_units = list(self.entry_short)
-        for unit in entry_units:
-            logical_unit = getattr(self, unit.attrib['id'])
-            indicator_dicts = {indicator: self.__dict__[indicator] for indicator in self.indicators_list}
-            if unit.tag == 'True':
-                unit_states.append(logical_unit.evaluate(indicator_dicts, price))
-            elif unit.tag == 'False':
-                unit_states.append(not logical_unit.evaluate(indicator_dicts, price))
-        return all(unit_states)
-
-    def __get_exit_long_signal(self, price):
-        unit_states = []
-        entry_units = list(self.exit_long)
-        for unit in entry_units:
-            logical_unit = getattr(self, unit.attrib['id'])
-            indicator_dicts = {indicator: self.__dict__[indicator] for indicator in self.indicators_list}
-            if unit.tag == 'True':
-                unit_states.append(logical_unit.evaluate(indicator_dicts, price))
-            elif unit.tag == 'False':
-                unit_states.append(not logical_unit.evaluate(indicator_dicts, price))
-        return all(unit_states)
-
-    def __get_exit_short_signal(self, price):
-        unit_states = []
-        entry_units = list(self.exit_short)
+        entry_units = list(getattr(self, signal))
         for unit in entry_units:
             logical_unit = getattr(self, unit.attrib['id'])
             indicator_dicts = {indicator: self.__dict__[indicator] for indicator in self.indicators_list}
@@ -174,104 +139,23 @@ class SignalFromXML(BaseSignal):
                 getattr(self, indicator).update(cluster)
         ind = indicator_index or -1
         if not self.in_position:
-            if self.__get_entry_long_signal(candle.close):
+            if self.__evaluate_signal('entry_long', candle.close):
                 self.in_position = 1
                 self.entry_price = candle.close
                 return 1
-            elif self.__get_entry_short_signal(candle.close):
+            elif self.__evaluate_signal('entry_short', candle.close):
                 self.in_position = 3
                 self.entry_price = candle.close
                 return 3
             else:
                 return 0
         elif self.in_position:
-            if self.__get_exit_long_signal(candle.close) and self.in_position == 1:
+            if self.__evaluate_signal('exit_long', candle.close) and self.in_position == 1:
                 self.in_position = False
                 return 2
-            if self.__get_exit_short_signal(candle.close) and self.in_position == 3:
+            if self.__evaluate_signal('exit_short', candle.close) and self.in_position == 3:
                 self.in_position = False
                 return 4
-
-
-
-class EMACrossSignal(BaseSignal):
-
-    def __init__(self, **indicators):
-        self.required_indicators = []
-        super().__init__(**indicators)
-        self.max_period = max([indicator.period for indicator in indicators.values() if hasattr(indicator, 'period')])
-
-    def __get_entry_long_signal(self, ema_9, ema_24):
-        ema_24_below_ema_9 = ema_24 < ema_9
-        diff_ema_above_25 = abs(ema_24-ema_9) > 0.00015
-        return all([ema_24_below_ema_9, diff_ema_above_25])
-
-    def __get_entry_short_signal(self, ema_9, ema_24):
-        ema_24_above_ema_9 = ema_24 > ema_9
-        diff_ema_above_25 = abs(ema_24-ema_9) > 0.00015
-        return all([ema_24_above_ema_9, diff_ema_above_25])
-    def __get_exit_long_signal(self, ema_9, ema_24):
-        ema_24_above_ema_9 = ema_24 > ema_9
-        return ema_24_above_ema_9
-
-    def __get_exit_short_signal(self, ema_9, ema_24):
-        ema_24_below_ema_9 = ema_24 < ema_9
-        return ema_24_below_ema_9
-
-    def get_signal(self, candle: CandleCluster.Candle, indicator_index: int = None, cluster: CandleCluster = None) -> DataFrame:
-        if (indicator_index and indicator_index < self.max_period) or indicator_index == 0:
-            return 0
-        if cluster:
-            self.ema_9.update(cluster)
-            self.rsi.update(cluster)
-            self.ema_24.update(cluster)
-        ind = indicator_index or -1
-        ema_9 = self.ema_9.data['y'].iloc[ind]
-        ema_12 = self.ema_12.data['y'].iloc[ind]
-        ema_24 = self.ema_24.data['y'].iloc[ind]
-        this_cand = candle.close
-        if not self.in_position:
-            entry_signal_long = self.__get_entry_long_signal(ema_9, ema_24)
-            entry_signal_short = self.__get_entry_short_signal(ema_9, ema_24)
-            if entry_signal_long:
-                self.in_position = 1
-                self.entry_price = this_cand
-                self.stop_loss = this_cand - 300
-                return 1
-            elif entry_signal_short:
-                self.in_position = 3
-                self.entry_price = this_cand
-                self.stop_loss = this_cand + 300
-                return 3
-            else:
-                return 0
-        elif self.in_position:
-            exit_signal_long = self.__get_exit_long_signal(ema_9, ema_12)
-            exit_signal_short = self.__get_exit_short_signal(ema_9, ema_12)
-                # Take profit             Stop loss
-            if (exit_signal_long and self.in_position == 1) or (candle.time.weekday() == 4 and candle.time.hour >= 16):
-                self.in_position = False
-                self.stop_loss = 0
-                return 2
-            if (exit_signal_short and self.in_position == 3) or (candle.time.weekday() == 4 and candle.time.hour >= 16):
-                self.in_position = False
-                self.stop_loss = 0
-                return 4
-            else:
-                return self._check_stop_loss(this_cand)
-
-    def generate_signals_for_candle_cluster(self, candles: CandleCluster) -> list:
-        signals = []
-        for i in range(len(candles)):
-            candle = candles[i]
-            signals.append(self.get_signal(candle, indicator_index=i, cluster=candles))
-        pass
-        return DataFrame(
-            data={
-                'x': candles.history('time'),
-                'y': signals,
-            }
-        )
 
 
 class Boll2EMA(BaseSignal):
@@ -326,21 +210,21 @@ class Boll2EMA(BaseSignal):
         ind = indicator_index or -1
         ema_9 = self.ema_9.data['y'].iloc[ind]
         ema_24 = self.ema_24.data['y'].iloc[ind]
-        bollhigh = Decimal(self.bollinger.data['y2'].iloc[ind])
-        bolllow = Decimal(self.bollinger.data['y1'].iloc[ind])
+        bollhigh = float(self.bollinger.data['y2'].iloc[ind])
+        bolllow = float(self.bollinger.data['y1'].iloc[ind])
         this_cand = candle.close
         if not self.in_position:
             if self.__get_entry_long_signal(bolllow, bollhigh, ema_9, ema_24, this_cand):
                 self.in_position = 1
                 self.entry_price = this_cand
-                self.take_profit = this_cand + abs(bollhigh - bolllow) * Decimal(1.5)
-                self.stop_loss = this_cand - abs(bollhigh - bolllow) * Decimal(0.7)
+                self.take_profit = this_cand + abs(bollhigh - bolllow) * float(1.5)
+                self.stop_loss = this_cand - abs(bollhigh - bolllow) * float(0.7)
                 return 1
             elif self.__get_entry_short_signal(bollhigh, bolllow, ema_9, ema_24, this_cand):
                 self.in_position = 3
                 self.entry_price = this_cand
-                self.take_profit = this_cand - abs(bollhigh - bolllow) * Decimal(1.5)
-                self.stop_loss = this_cand + abs(bollhigh - bolllow) * Decimal(0.7)
+                self.take_profit = this_cand - abs(bollhigh - bolllow) * float(1.5)
+                self.stop_loss = this_cand + abs(bollhigh - bolllow) * float(0.7)
                 return 3
             else:
                 return 0
