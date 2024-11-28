@@ -5,6 +5,12 @@
 
 ## November 2024 ##
 
+### 0.7.0a - 28 November 2024 ###
+
+- Deprecated use of `pandas` library in favor of `numpy` for faster calculations.
+- All uses of Dataframes have been removed in favor of numpy arrays.
+- Python `ta` library has been removed and replaced with `talib` for faster calculations.
+
 ### 0.6.0a - 26 November 2024 ###
 
 - Added `SignalFromXML` class to `signals` module. This class allows you to create signals from XML files.

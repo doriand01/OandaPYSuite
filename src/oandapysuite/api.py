@@ -10,6 +10,8 @@ from oandapysuite.objects.datatypes import UnixTime, candlex
 
 import json
 import logging
+import numpy as np
+
 from time import sleep
 from datetime import datetime, timedelta
 from copy import deepcopy
@@ -87,7 +89,7 @@ class API:
                 else:
                     # Calculate the start and end timestamps for each chunk.
                     if i == 1:
-                        chunk_end = int(final_candles[0].time.timestamp())
+                        chunk_end = int(final_candles[0][4].timestamp())
                     elif i > 1:
                         chunk_end = chunks_datetimes[i-1][0]
                     chunk_start = int(chunk_end - 5000 * candlex[gran])
@@ -97,18 +99,18 @@ class API:
                 # Create each chunk of candles and concatenate them to the final_candles object.
                 response = get(instrument.Instrument.get_candles(ins, gran, from_time=UnixTime(chunk[0]), to_time=UnixTime(chunk[1])), headers=self.auth_header)
                 chunk_candles = CandleCluster(response.text)
-                final_candles = chunk_candles + final_candles
+                final_candles = np.concatenate([chunk_candles, final_candles])
 
             # After the chunks have all been retrieved, the remainder candles are retrieved and concatenated to the
             # final_candles object.
-            remainder_chunk_start = int(final_candles[0].time.timestamp() - (remainder * candlex[gran]))
-            remainder_chunk_end = int(final_candles[0].time.timestamp())
+            remainder_chunk_start = int(final_candles[0][4].timestamp() - (remainder * candlex[gran]))
+            remainder_chunk_end = int(final_candles[0][4].timestamp())
             response = get(instrument.Instrument.get_candles(ins, gran, from_time=UnixTime(remainder_chunk_start), to_time=UnixTime(remainder_chunk_end)), headers=self.auth_header)
             remainder_candles = CandleCluster(response.text)
             if len(remainder_candles) == 0:
                 return final_candles
             else:
-                final_candles = remainder_candles + final_candles
+                final_candles = np.concatenate([remainder_candles, final_candles])
                 return final_candles
 
 
@@ -219,16 +221,6 @@ class API:
 
     def get_order_book(self, instrument):
         response = get(instrument.Instrument.get_order_book(instrument))
-
-    def get_child_candles(self, candle: CandleCluster.Candle, gran: str) -> CandleCluster:
-        """Returns the children candles (in the form of a CandleCluster object) of a specified 
-        candle at the specified granularity. For example, passing in an H1 candle from 00:00-01:00
-        on 1 January, using 'M1' as the desired child granularity, will yield a CandleCluster object 
-        containing 60 M1 candles, ranging from the start of the parent candle to the end of the parent candle."""
-
-        start = int(candle.time.timestamp())
-        end = int(candle.time.timestamp()) + candlex[candle.gran]
-        return self.get_candles(candle.instrument, gran, start=UnixTime(start), end=UnixTime(end))
 
     def __init__(self):
         self.auth = str(open(AUTH_FILEPATH, 'r').read())

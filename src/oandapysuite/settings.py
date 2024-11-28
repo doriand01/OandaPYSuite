@@ -41,8 +41,12 @@ INDICATOR_ALIASES = {
     'UlcerIndex'              : 'oandapysuite.objects.indicators.volatility.UlcerIndex',
     'AverageTrueRange'         : 'oandapysuite.objects.indicators.volatility.AverageTrueRange',
     'DonchianChannels'         : 'oandapysuite.objects.indicators.volatility.DonchianChannels',
+}
 
-
-
-
+OHLCT_COLUMN_POSITIONS = {
+    'open' : 0,
+    'high' : 1,
+    'low'  : 2,
+    'close': 3,
+    'time' : 4
 }

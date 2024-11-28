@@ -7,7 +7,7 @@ from oandapysuite.objects.signals import BaseSignal
 from multiprocessing.pool import ThreadPool
 from datetime import datetime, timedelta
 from random import random
-from time import sleep
+from time import time
 from math import ceil
 from copy import deepcopy
 
@@ -51,21 +51,27 @@ class MarketSimulator:
             is_close (bool): If True, update the price to the close value.
             is_open (bool): If True, update the price to the open value.
         """
+        open = candle[0]
+        high = candle[1]
+        low = candle[2]
+        close = candle[3]
+
+
         if is_close:
-            self.current_price = candle.close
+            self.current_price = close
         elif is_open:
-            self.current_price = candle.open
+            self.current_price = open
         else:
             # Determine movement direction: higher weight towards up or down based on candle trend
             direction = 1.2 if random() > 0.5 else -1.2
-            if candle.open > candle.close:
+            if open > close:
                 direction = -direction  # Reverse direction for downward candles
 
             # Calculate the adjustment factor
-            adjustment = direction * (candle.high - candle.low) * (random() * 0.5)
+            adjustment = direction * (high - low) * (random() * 0.5)
 
             # Update current price and enforce boundaries
-            self.current_price = max(min(candle.low + adjustment, candle.high), candle.low)
+            self.current_price = max(min(low + adjustment, high), low)
 
     # Uses recursive logic to get the relevant candle for a specified target time. The candle to be returned depends on
     # what the target time is, as well as the speed of the simulation. In order for the simulation to run properly,
@@ -76,13 +82,6 @@ class MarketSimulator:
     # is greater than 1/4 the length of the timeframe, then that timeframe is too low to be simulated, and the
     # candles from the higher timeframe will be returned instead. Otherwise, the candles from the lowest possible
     # timeframe that can be simulated under the simulation conditions will be returned.
-
-    def pause(self):
-        print("Simulation paused                  ", end="\r")
-        self.paused = True
-
-    def play(self):
-        self.paused = False
 
     def __init__(
             self,
@@ -106,9 +105,9 @@ class MarketSimulator:
         self.window = window
         self.current_candle_index = 0
         self.candles_dict = {}
-        self.start_time = self.window[0].time
-        self.current_time = self.window[0].time
-        self.current_price = self.window[0].open
+        self.start_time = self.window[0][4]
+        self.current_time = self.window[0][4]
+        self.current_price = self.window[0][0]
         self.api = api_object
         self.speed_factor = speed_factor
         self.candle_cache = {}  # Cache for storing fetched candle data
@@ -138,7 +137,7 @@ class MarketSimulator:
     def _do_tick(self):
         # If the current time is greater than the current candle's closing (meaning that the current candle has closed)
         # the next candle is fetched using the __get_candle_at_time() method.
-        next_candle_time = self.window[self.current_candle_index + 1].time
+        next_candle_time = self.window[self.current_candle_index + 1][4]
         if self.current_time > next_candle_time:
             self.__update_price(self.current_candle, is_close=True)
             self.current_candle_index += 1
@@ -190,8 +189,9 @@ class Backtester(MarketSimulator):
         self.trade_log.append(trade_details)
 
     def __check_signal(self):
-        candle_cluster = CandleCluster(cand_list=list(self.window.candles.iloc[:self.current_candle_index+1])) # Add one to include the current candle
-        sig_val = self.signal.get_signal(self.current_candle, cluster=candle_cluster)
+        lookback_start = self.current_candle_index - (self.signal.max_period * 4) if self.current_candle_index - (self.signal.max_period * 4) >= 0 else 0
+        candles = self.window[lookback_start:self.current_candle_index+1] # Add one to include the current candle
+        sig_val = self.signal.get_signal(self.current_price, cluster=candles)
         if self.trade_type == 0:
             if sig_val == 1:
                 self.__enter_trade(trade_type=1)
@@ -257,10 +257,12 @@ class Backtester(MarketSimulator):
     def run(self):
         try:
             print(f'Starting simulation at {self.current_time}')
+            start_stamp = time()
             while True:
                 self._do_tick()
-        except (Exception, KeyboardInterrupt):
+        except (KeyboardInterrupt, IndexError):
             print(f'Exiting simulation at {self.current_time}')
+            print(f'Simulation took {(time() - start_stamp) / 60:.2f} minutes to complete.')
             self._calculate_statistics()
             self._output_trade_log()
 

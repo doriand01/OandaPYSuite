@@ -1,16 +1,16 @@
 <Signal>
     <Indicator name="ExponentialMovingAverage" id="ema1">
-        <Setting name="period">10</Setting>
+        <Setting name="period">9</Setting>
         <Setting name="on">close</Setting>
     </Indicator>
     <Indicator name="ExponentialMovingAverage" id="ema2">
-        <Setting name="period">20</Setting>
+        <Setting name="period">24</Setting>
         <Setting name="on">close</Setting>
     </Indicator>
     <Indicator name="BollingerBands" id="bb1">
         <Setting name="period">20</Setting>
         <Setting name="on">close</Setting>
-        <Setting name="std">0.6</Setting>
+        <Setting name="std">2</Setting>
     </Indicator>
     <LogicalUnit id="1">
         <Condition type="GreaterThan">
@@ -41,15 +41,15 @@
         </Condition>
     </LogicalUnit>
     <EntryLong>
-        <True id="1"/>
+        <True id="2"/>
     </EntryLong>
     <ExitLong>
-        <False id="1"/>
+        <False id="2"/>
     </ExitLong>
     <EntryShort>
-        <True id="2"/>
+        <True id="1"/>
     </EntryShort>
     <ExitShort>
-        <False id="2"/>
+        <False id="1"/>
     </ExitShort>
 </Signal>

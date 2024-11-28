@@ -1,45 +1,39 @@
 from oandapysuite.objects.indicators import BaseIndicator
+from oandapysuite.objects.instrument import CandleCluster
+from oandapysuite.settings import OHLCT_COLUMN_POSITIONS as ohlct
+from oandapysuite.objects.instrument import CandleCluster
 
 from pandas import DataFrame, Series
+import numpy as np
 
 import ta
-
-
-class AwesomeOscillator(BaseIndicator):
-
-    def __init__(self, **options):
-        self.required_options = ['high', 'low', 'period1', 'period2']
-        super().__init__(**options)
-        self.is_subplot = True
-        self.indicator_id = 'awesome_oscillator'
-
-    def update(self, candle_cluster):
-        datapoints = candle_cluster.history(self.on)
-        awesome_oscillator = ta.momentum.AwesomeOscillatorIndicator(high=datapoints['high'], low=datapoints['low'], window1=self.period1, window2=self.period2)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y'       : awesome_oscillator.awesome_oscillator()
-        })
+import talib
 
 
 class PercentagePriceOscillator(BaseIndicator):
 
     def __init__(self, **options):
-        self.required_options = ['on', 'period1', 'period2', 'signal']
+        self.required_options = ['on', 'period_fast', 'period_slow']
         super().__init__(**options)
         self.is_subplot = True
-        self.y_count = 3
         self.indicator_id = 'percentage_price_oscillator'
 
     def update(self, candle_cluster):
-        datapoints = candle_cluster.history(self.on)
+        if type(candle_cluster) == CandleCluster:
+            datapoints = candle_cluster.candles[:, ohlct[self.on]]
+            time = candle_cluster.candles[:, ohlct['time']]
+        else:
+            datapoints = candle_cluster[:, ohlct[self.on]]
+            time = candle_cluster[:, ohlct['time']]
         percentage_price_oscillator = ta.momentum.PercentagePriceOscillator(close=datapoints, window_slow=self.period1, window_fast=self.period2, window_sign=self.signal)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y1'       : percentage_price_oscillator.ppo(),
-            'y2'      : percentage_price_oscillator.ppo_signal(),
-            'y3'      : percentage_price_oscillator.ppo_hist()
-        })
+        ppo = talib.PPO(
+            datapoints,
+            fastperiod=self.period1,
+            slowperiod=self.period2,
+        )
+        setattr(self, 'x', time)
+        setattr(self, 'y', ppo)
+
 
 
 class RateOfChange(BaseIndicator):
@@ -51,12 +45,18 @@ class RateOfChange(BaseIndicator):
         self.indicator_id = 'rate_of_change'
 
     def update(self, candle_cluster):
-        datapoints = candle_cluster.history(self.on)
-        rate_of_change = ta.momentum.ROCIndicator(close=datapoints, window=self.period)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y'       : rate_of_change.roc()
-        })
+        if type(candle_cluster) == CandleCluster:
+            datapoints = candle_cluster.candles[:, ohlct[self.on]]
+            time = candle_cluster.candles[:, ohlct['time']]
+        else:
+            datapoints = candle_cluster[:, ohlct[self.on]]
+            time = candle_cluster[:, ohlct['time']]
+        roc = talib.ROC(
+            datapoints,
+            timeperiod=self.period
+        )
+        setattr(self, 'x', time)
+        setattr(self, 'y', roc)
 
 class RelativeStrengthIndex(BaseIndicator):
 
@@ -67,105 +67,144 @@ class RelativeStrengthIndex(BaseIndicator):
         self.indicator_id = 'relative_strength_index'
 
     def update(self, candle_cluster):
-        datapoints = candle_cluster.history(self.on)
-        relative_strength_index = ta.momentum.RSIIndicator(close=datapoints, window=self.period)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y'       : relative_strength_index.rsi()
-        })
+        if type(candle_cluster) == CandleCluster:
+            datapoints = candle_cluster.candles[:, ohlct[self.on]]
+            time = candle_cluster.candles[:, ohlct['time']]
+        else:
+            datapoints = candle_cluster[:, ohlct[self.on]]
+            time = candle_cluster[:, ohlct['time']]
+        rsi = talib.RSI(
+            datapoints,
+            timeperiod=self.period
+        )
+        setattr(self, 'x', time)
+        setattr(self, 'y', rsi)
 
 class StochasticOscillator(BaseIndicator):
 
     def __init__(self, **options):
         self.required_options = ['period', 'smooth_window']
+        self.fastk_period = 5
+        self.slowk_period = 3
+        self.slowk_matype = 0
+        self.slowd_period = 3
+        self.slowd_matype = 0
         super().__init__(**options)
+        self.y_count = 2
+        self.colors = {
+            'y1': 'blue',
+            'y2': 'red'
+        }
         self.is_subplot = True
         self.indicator_id = 'stochastic_oscillator'
 
     def update(self, candle_cluster):
-        highs = candle_cluster.history('high')
-        lows = candle_cluster.history('low')
-        closes = candle_cluster.history('close')
-        stochastic_oscillator = ta.momentum.StochasticOscillator(high=highs, low=lows, close=closes, window=self.period, smooth_window=self.smooth_window)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y'       : stochastic_oscillator.stoch()
-        })
-
-
-class TrueStrengthIndex(BaseIndicator):
-
-    def __init__(self, **options):
-        self.required_options = ['on', 'period1', 'period2']
-        super().__init__(**options)
-        self.is_subplot = True
-        self.indicator_id = 'true_strength_index'
-
-    def update(self, candle_cluster):
-        datapoints = candle_cluster.history(self.on)
-        true_strength_index = ta.momentum.TSIIndicator(close=datapoints, window_slow=self.period1, window_fast=self.period2)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y'       : true_strength_index.tsi()
-        })
+        if type(candle_cluster) == CandleCluster:
+            highs = candle_cluster.candles[:, ohlct['high']].astype(np.float64)
+            lows = candle_cluster.candles[:, ohlct['low']].astype(np.float64)
+            closes = candle_cluster.candles[:, ohlct['close']].astype(np.float64)
+            time = candle_cluster.candles[:, ohlct['time']].astype(np.float64)
+        else:
+            highs = candle_cluster[:, ohlct['high']].astype(np.float64)
+            lows = candle_cluster[:, ohlct['low']].astype(np.float64)
+            closes = candle_cluster[:, ohlct['close']].astype(np.float64)
+            time = candle_cluster[:, ohlct['time']].astype(np.float64)
+        slowk, slowd = talib.STOCH(
+            high=highs,
+            low=lows,
+            close=closes,
+            fastk_period=self.fastk_period,
+            slowk_period=self.slowk_period,
+            slowk_matype=self.slowk_matype,
+            slowd_period=self.slowd_period,
+            slowd_matype=self.slowd_matype
+        )
+        setattr(self, 'x', time)
+        setattr(self, 'y1', slowk)
+        setattr(self, 'y2', slowd)
 
 
 class KAMA(BaseIndicator):
 
     def __init__(self, **options):
-        self.required_options = ['on', 'period1', 'period2', 'period3']
+        self.required_options = ['on', 'period']
         super().__init__(**options)
         self.is_subplot = True
         self.indicator_id = 'kama'
 
     def update(self, candle_cluster):
-        datapoints = candle_cluster.history(self.on)
-        kama = ta.momentum.KAMAIndicator(close=datapoints, window=self.period1, pow1=self.period2, pow2=self.period3)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y'       : kama.kama()
-        })
+        if type(candle_cluster) == CandleCluster:
+            datapoints = candle_cluster.candles[:, ohlct[self.on]]
+            time = candle_cluster.candles[:, ohlct['time']]
+        else:
+            datapoints = candle_cluster[:, ohlct[self.on]]
+            time = candle_cluster[:, ohlct['time']]
+        kama = talib.KAMA(
+            datapoints,
+            timeperiod=self.period
+        )
+        setattr(self, 'x', time)
+        setattr(self, 'y', kama)
 
 class StochasticRSI(BaseIndicator):
 
     def __init__(self, **options):
-        self.required_options = ['on', 'period', 'smooth1', 'smooth2']
+        self.required_options = ['on', 'period']
+        self.fastk_period = 5
+        self.fastd_period = 3
+        self.fastd_maytype = 0
         super().__init__(**options)
         self.is_subplot = True
         self.y_count = 3
         self.indicator_id = 'stochastic_rsi'
 
     def update(self, candle_cluster):
-        datapoints = candle_cluster.history(self.on)
-        stochastic_rsi = ta.momentum.StochasticRSIIndicator(close=datapoints, window=self.period, smooth1=self.smooth1, smooth2=self.smooth2)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y1'       : stochastic_rsi.stochrsi(),
-            'y2'       : stochastic_rsi.stochrsi_d(),
-            'y3'       : stochastic_rsi.stochrsi_k()
-        })
+        if type(candle_cluster) == CandleCluster:
+            datapoints = candle_cluster.candles[:, ohlct[self.on]]
+            time = candle_cluster.candles[:, ohlct['time']]
+        else:
+            datapoints = candle_cluster[:, ohlct[self.on]]
+            time = candle_cluster[:, ohlct['time']]
+        fastk, fastd = talib.STOCH(
+            datapoints,
+            fastk_period=self.fastk_period,
+            fastd_period=self.fastd_period,
+            fastd_matype=self.fastd_maytype,
+            timeperiod=self.period
+        )
+        setattr(self, 'x', time)
+        setattr(self, 'y1', fastk)
+        setattr(self, 'y2', fastd)
 
 class UltimateOscillator(BaseIndicator):
 
     def __init__(self, **options):
-        self.required_options = ['period1', 'period2', 'period3', 'weight1', 'weight2', 'weight3']
+        self.required_options = ['period1', 'period2', 'period3']
         super().__init__(**options)
         self.is_subplot = True
         self.indicator_id = 'ultimate_oscillator'
 
     def update(self, candle_cluster):
-        highs = candle_cluster.history('high')
-        lows = candle_cluster.history('low')
-        closes = candle_cluster.history('close')
-        ultimate_oscillator = ta.momentum.UltimateOscillator(
-            high=highs, low=lows, close=closes,
-            window1=self.period1, window2=self.period2,
-            window3=self.period3, weight1=self.weight1,
-            weight2=self.weight2, weight3=self.weight3)
-        self.data = DataFrame(data={
-            'x'       : candle_cluster.history('time'),
-            'y'       : ultimate_oscillator.ultimate_oscillator()
-        })
+        if type(candle_cluster) == CandleCluster:
+            highs = candle_cluster.candles[:, ohlct['high']].astype(np.float64)
+            lows = candle_cluster.candles[:, ohlct['low']].astype(np.float64)
+            closes = candle_cluster.candles[:, ohlct['close']].astype(np.float64)
+            time = candle_cluster.candles[:, ohlct['time']].astype(np.float64)
+        else:
+            highs = candle_cluster[:, ohlct['high']].astype(np.float64)
+            lows = candle_cluster[:, ohlct['low']].astype(np.float64)
+            closes = candle_cluster[:, ohlct['close']].astype(np.float64)
+            time = candle_cluster[:, ohlct['time']].astype(np.float64)
+        ultosc = talib.ULTOSC(
+            highs,
+            lows,
+            closes,
+            timeperiod1=self.period1,
+            timeperiod2=self.period2,
+            timeperiod3=self.period3
+        )
+        setattr(self, 'x', time)
+        setattr(self, 'y', ultosc)
 
 
 class WilliamsR(BaseIndicator):
@@ -177,11 +216,21 @@ class WilliamsR(BaseIndicator):
             self.indicator_id = 'williams_r'
 
         def update(self, candle_cluster):
-            highs = candle_cluster.history('high')
-            lows = candle_cluster.history('low')
-            closes = candle_cluster.history('close')
-            williams_r = ta.momentum.WilliamsRIndicator(high=highs, low=lows, close=closes, lbp=self.period)
-            self.data = DataFrame(data={
-                'x'       : candle_cluster.history('time'),
-                'y'       : williams_r.williams_r()
-            })
+            if type(candle_cluster) == CandleCluster:
+                highs = candle_cluster.candles[:, ohlct['high']].astype(np.float64)
+                lows = candle_cluster.candles[:, ohlct['low']].astype(np.float64)
+                closes = candle_cluster.candles[:, ohlct['close']].astype(np.float64)
+                time = candle_cluster.candles[:, ohlct['time']].astype(np.float64)
+            else:
+                highs = candle_cluster[:, ohlct['high']].astype(np.float64)
+                lows = candle_cluster[:, ohlct['low']].astype(np.float64)
+                closes = candle_cluster[:, ohlct['close']].astype(np.float64)
+                time = candle_cluster[:, ohlct['time']].astype(np.float64)
+            willr = talib.WILLR(
+                highs,
+                lows,
+                closes,
+                timeperiod=self.period
+            )
+            setattr(self, 'x', time)
+            setattr(self, 'y', willr)
